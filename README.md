@@ -261,3 +261,56 @@ python -c "from app.macro_storage import get_default_macro_template, save_macro,
 ```powershell
 python -c "from app.validators import validate_macro_data; from app.macro_storage import get_default_macro_template; print(validate_macro_data(get_default_macro_template()))"
 ```
+
+## Fase 5: previsualización y estimación de duración
+
+La Fase 5 agrega una capa de previsualización de macros antes de cualquier ejecución. Esta fase sigue siendo solo declarativa: no presiona teclas, no activa F9 global, no implementa el botón **Detener ahora**, no crea un runner operativo y no agrega UI completa ni modal gráfico.
+
+`app/preview.py` expone funciones para construir un resumen estructurado que una futura interfaz podrá mostrar al usuario:
+
+- `get_variation_seconds(variation_mode)`: devuelve la variación en segundos para `fixed`, `light`, `medium` o `high`.
+- `calculate_delay_range(base_delay, variation_mode)`: calcula duración mínima, promedio y máxima de un retardo.
+- `estimate_macro_duration(macro_data)`: estima duración total o por ciclo usando una macro validada.
+- `format_seconds(seconds)`: convierte segundos a texto legible como `5 s`, `1 min 5 s` o `1 h 1 min 1 s`.
+- `build_action_preview(action, index)`: crea el resumen de una acción con tecla legible y rango de delay.
+- `build_macro_preview(macro_data)`: crea el resumen completo de la macro, incluyendo acciones, repeticiones, modo de ejecución y `human_summary`.
+
+### Cómo se calcula la variación
+
+Los modos de variación de Fase 5 usan estos valores fijos:
+
+```text
+fixed  = 0.00 s
+light  = 0.15 s
+medium = 0.30 s
+high   = 0.50 s
+```
+
+Para cada delay con variación se calcula:
+
+```text
+mínimo   = max(0, base_delay - variation)
+promedio = base_delay
+máximo   = base_delay + variation
+```
+
+La estimación de duración incluye:
+
+- `initial_delay` una sola vez al inicio.
+- Los delays de cada acción en cada repetición.
+- `cooldown_base` con variación entre repeticiones finitas, pero no después de la última.
+- En macros infinitas, `total` queda como `None` porque la duración total es indefinida, y se informa una referencia por repetición y por ciclo repetible.
+
+### Pruebas rápidas de Fase 5 en PowerShell
+
+```powershell
+python -m compileall app
+```
+
+```powershell
+python -c "from app.macro_storage import get_default_macro_template; from app.preview import build_macro_preview; preview=build_macro_preview(get_default_macro_template()); print(preview['actions_count']); print(preview['duration_estimate']['infinite']); print(preview['actions'][0]['key_display_name'])"
+```
+
+```powershell
+python -c "from app.preview import format_seconds, calculate_delay_range; print(format_seconds(65)); print(calculate_delay_range(5.0, 'medium'))"
+```
