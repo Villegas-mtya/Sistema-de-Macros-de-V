@@ -4,16 +4,18 @@ Sistema de Macros de V será una aplicación de escritorio en Python para constr
 
 ## Alcance de esta fase
 
-Esta segunda fase prepara rutas seguras para datos de usuario y compatibilidad de rutas para ejecución como script `.py` o como `.exe` empaquetado con PyInstaller.
+Esta tercera fase completa el mapeo, normalización y validación de teclas para macros manuales de teclado. La aplicación ya puede reconocer teclas en modo simple y modo avanzado, y convertirlas a valores internos estables para JSON.
 
 En esta fase todavía no se implementa ejecución de macros. Por seguridad, la ejecución real de teclas no será flujo recomendado hasta que existan y funcionen F9 global y el botón **Detener ahora**.
 
 ## Lo que esta aplicación no hace
 
-- No graba macros automáticamente.
+- No graba macros automáticamente ni manualmente.
+- No captura teclado para grabar acciones.
 - No captura mouse.
 - No ejecuta clicks.
 - No mueve el mouse.
+- No implementará grabación de macros, recorder, mouse, clicks ni movimientos en fases futuras.
 - No evade restricciones.
 - No lee memoria.
 - No interactúa directamente con juegos.
@@ -32,6 +34,45 @@ pip install -r requirements.txt
 ```bash
 python main.py
 ```
+
+
+## Teclas soportadas en Fase 3
+
+La Fase 3 separa dos formas de seleccionar teclas:
+
+- **Modo simple**: la UI puede mostrar una lista ordenada de opciones legibles generada por `get_simple_key_options()`.
+- **Modo avanzado**: el usuario puede escribir una tecla manualmente, por ejemplo `enter`, `F12`, `x` o `Flecha arriba`.
+
+Las teclas se normalizan internamente antes de guardarse en JSON. Por ejemplo, `Enter`, `enter` y `ENTER` se convierten en `"enter"`; `Flecha arriba` se convierte en `"up"`; y `A` se convierte en `"a"`.
+
+Teclas especiales soportadas:
+
+- `Enter`
+- `Space`
+- `Esc` / `Escape`
+- `Tab`
+- `Shift`
+- `Ctrl`
+- `Alt`
+- `Flecha arriba`
+- `Flecha abajo`
+- `Flecha izquierda`
+- `Flecha derecha`
+- `F1` a `F12`
+
+También se soportan letras `A-Z` y números `0-9`. No se aceptan palabras desconocidas, textos vacíos, cadenas con solo espacios ni teclas fuera del conjunto soportado.
+
+Una acción básica conserva esta estructura:
+
+```json
+{
+  "key": "enter",
+  "base_delay": 5.0,
+  "variation_mode": "medium"
+}
+```
+
+Esta fase solo valida y normaliza teclas; no guarda, importa ni ejecuta macros todavía.
 
 ## Rutas de usuario
 
@@ -96,6 +137,27 @@ python -c "from app.app_paths import get_user_data_dir, get_macros_dir, get_logs
 ```
 
 El resultado debe mostrar rutas absolutas para la carpeta de usuario, sus subcarpetas y la carpeta interna `assets`.
+
+
+## Pruebas rápidas de teclas en PowerShell
+
+```powershell
+python -m compileall app
+```
+
+```powershell
+python -c "from app.key_mapper import normalize_key, validate_key, get_key_display_name; print(normalize_key('Enter')); print(normalize_key('Flecha arriba')); print(validate_key('F12')); print(validate_key('tecla_invalida')); print(get_key_display_name('enter'))"
+```
+
+La segunda prueba debe imprimir valores equivalentes a:
+
+```text
+enter
+up
+True
+False
+Enter
+```
 
 ## Dependencias
 
