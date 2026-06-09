@@ -2,11 +2,17 @@
 
 Sistema de Macros de V será una aplicación de escritorio en Python para construir macros manuales de teclado.
 
-## Alcance de esta fase
+## Alcance actual
 
-Esta cuarta fase agrega almacenamiento, carga, importación y exportación de macros en JSON sobre la base de mapeo, normalización y validación de teclas de Fase 3. La aplicación ya puede reconocer teclas en modo simple y modo avanzado, convertirlas a valores internos estables y validar la estructura básica de una macro guardable.
+El proyecto ya integra las Fases 1 a 6 sobre una base segura y progresiva:
 
-En esta fase todavía no se implementa ejecución de macros. Por seguridad, la ejecución real de teclas no será flujo recomendado hasta que existan y funcionen F9 global y el botón **Detener ahora**.
+- **Fase 4**: almacenamiento, carga, listado, borrado, importación y exportación de macros en JSON.
+- **Fase 5**: previsualización declarativa y estimación de duración antes de ejecutar.
+- **Fase 6**: runner de simulación en modo prueba **solo log**.
+
+La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración y recorrer una macro validada sin presionar teclas reales.
+
+Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan en el runner de Fase 6 hasta que existan controles de emergencia como F9 global y el botón operativo **Detener ahora**.
 
 ## Lo que esta aplicación no hace
 
@@ -70,7 +76,7 @@ Una acción básica conserva esta estructura:
 }
 ```
 
-La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON, pero todavía no ejecuta macros.
+La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; y la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log.
 
 ## Rutas de usuario
 
@@ -179,7 +185,7 @@ El build inicial usa PyInstaller en modo `--onedir` y no falla si `assets/app_ic
 
 ## Fase 4: almacenamiento JSON de macros
 
-La Fase 4 agrega almacenamiento, carga, importación y exportación de macros en archivos `.json`. Esta fase solo trabaja con datos: todavía no ejecuta macros, no activa F9 global, no implementa un runner operativo, no captura teclado para grabar acciones y no agrega mouse, clicks ni movimientos.
+La Fase 4 agrega almacenamiento, carga, importación y exportación de macros en archivos `.json`. Esta fase trabaja solo con datos: no ejecuta macros, no activa F9 global, no captura teclado para grabar acciones y no agrega mouse, clicks ni movimientos. La ejecución simulada solo aparece después, en Fase 6, mediante un runner de logs sin pulsación real de teclas.
 
 ### Dónde se guardan las macros
 
@@ -264,7 +270,7 @@ python -c "from app.validators import validate_macro_data; from app.macro_storag
 
 ## Fase 5: previsualización y estimación de duración
 
-La Fase 5 agrega una capa de previsualización de macros antes de cualquier ejecución. Esta fase sigue siendo solo declarativa: no presiona teclas, no activa F9 global, no implementa el botón **Detener ahora**, no crea un runner operativo y no agrega UI completa ni modal gráfico.
+La Fase 5 agrega una capa de previsualización de macros antes de cualquier ejecución. Esta fase sigue siendo declarativa: no presiona teclas, no activa F9 global, no implementa el botón **Detener ahora** y no agrega UI completa ni modal gráfico. La Fase 6, documentada más abajo, añade el primer runner seguro, pero solo en modo log.
 
 `app/preview.py` expone funciones para construir un resumen estructurado que una futura interfaz podrá mostrar al usuario:
 
@@ -313,4 +319,65 @@ python -c "from app.macro_storage import get_default_macro_template; from app.pr
 
 ```powershell
 python -c "from app.preview import format_seconds, calculate_delay_range; print(format_seconds(65)); print(calculate_delay_range(5.0, 'medium'))"
+```
+
+## Fase 6: runner en modo prueba solo log
+
+La Fase 6 completa `app/macro_runner.py` con una clase `MacroRunner` para simular el flujo de ejecución de una macro validada sin riesgo. El runner recorre `initial_delay`, acciones, `base_delay` con variación, repeticiones, cooldown entre repeticiones y macros infinitas, pero únicamente genera eventos de log.
+
+Características principales:
+
+- Solo permite `execution_mode = "test_log"`.
+- Rechaza `execution_mode = "real"` porque todavía faltan F9 global y controles de emergencia antes de presionar teclas reales.
+- Rechaza `execution_mode = "test_keys"` porque también implicaría emitir teclas.
+- No usa `pynput.Controller` ni presiona teclas reales.
+- Usa `get_key_display_name()` para mostrar teclas legibles en los eventos.
+- Acepta `log_callback` para enviar eventos a una UI futura o a pruebas.
+- Acepta `stop_callback` y el método `stop()` para solicitar detención en puntos seguros.
+- Acepta `sleep_function` inyectable para pruebas rápidas sin esperar segundos reales.
+- Puede iniciarse con `run()` de forma síncrona o con `start()` en un hilo daemon para no bloquear una UI futura.
+
+Ejemplo de evento generado:
+
+```python
+{
+    "type": "action",
+    "message": "Simulando tecla Enter",
+    "data": {
+        "repetition": 1,
+        "action_index": 1,
+        "key": "enter",
+        "key_display_name": "Enter",
+    },
+}
+```
+
+La variación de delays usa los mismos valores aprobados para el proyecto:
+
+```text
+fixed  = 0.00 s
+light  = 0.15 s
+medium = 0.30 s
+high   = 0.50 s
+```
+
+F9 global, listener global, ejecución real de teclas, botón operativo **Detener ahora** e integración visual con `app/ui.py` quedan para fases posteriores. Esta fase permite probar el flujo de ejecución sin riesgo porque todo queda limitado a logs.
+
+### Pruebas rápidas de Fase 6 en PowerShell
+
+```powershell
+python -m compileall app
+```
+
+```powershell
+python -c "from app.macro_storage import get_default_macro_template; from app.macro_runner import MacroRunner; logs=[]; data=get_default_macro_template(); data['execution_mode']='test_log'; runner=MacroRunner(data, log_callback=logs.append, sleep_function=lambda seconds: None); runner.run(); print(len(logs) > 0); print(logs[0]['type']); print(logs[-1]['type'])"
+```
+
+```powershell
+python -c "from app.macro_storage import get_default_macro_template; from app.macro_runner import MacroRunner; data=get_default_macro_template(); data['execution_mode']='real'; runner=MacroRunner(data, sleep_function=lambda seconds: None); ok=False;
+try:
+    runner.run()
+except ValueError:
+    ok=True
+print('real rechazado' if ok else 'ERROR')"
 ```
