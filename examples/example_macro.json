@@ -1,0 +1,28 @@
+{
+  "app": "Sistema de Macros de V",
+  "version": "1.0",
+  "actions": [
+    {
+      "key": "enter",
+      "base_delay": 2.0,
+      "variation_mode": "light"
+    },
+    {
+      "key": "x",
+      "base_delay": 8.0,
+      "variation_mode": "medium"
+    },
+    {
+      "key": "enter",
+      "base_delay": 0.5,
+      "variation_mode": "fixed"
+    }
+  ],
+  "initial_delay": 5.0,
+  "repetitions": 10,
+  "infinite": false,
+  "cooldown_base": 80.0,
+  "cooldown_variation": "light",
+  "execution_mode": "test_log_only",
+  "key_selection_mode": "simple"
+}
