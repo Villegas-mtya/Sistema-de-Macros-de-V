@@ -1,8 +1,9 @@
 """Interfaz inicial de Sistema de Macros de V.
 
-Fase 1 crea una ventana mínima y útil para comprobar que CustomTkinter abre la
-aplicación con el nombre oficial. Las funciones reales de edición, guardado,
-previsualización, ejecución y emergencia se implementarán en fases posteriores.
+Fase 2 muestra una ventana mínima y útil para comprobar que CustomTkinter abre la
+aplicación con el nombre oficial y que las rutas seguras de usuario ya están
+preparadas. Las funciones reales de edición, guardado, previsualización,
+ejecución y emergencia se implementarán en fases posteriores.
 """
 
 from __future__ import annotations
@@ -10,6 +11,12 @@ from __future__ import annotations
 import customtkinter as ctk
 
 from app import APP_NAME
+from app.app_paths import (
+    get_config_dir,
+    get_logs_dir,
+    get_macros_dir,
+    get_user_data_dir,
+)
 
 
 class MacroApp(ctk.CTk):
@@ -40,7 +47,7 @@ class MacroApp(ctk.CTk):
 
         subtitle = ctk.CTkLabel(
             header,
-            text="Fase 1: estructura base creada. La ejecución de macros todavía no está habilitada.",
+            text="Fase 2: rutas seguras preparadas. La ejecución de macros todavía no está habilitada.",
             anchor="w",
         )
         subtitle.grid(row=1, column=0, sticky="ew", padx=24, pady=(0, 18))
@@ -64,10 +71,15 @@ class MacroApp(ctk.CTk):
         message.grid(row=1, column=0, sticky="nsew", padx=18, pady=(0, 18))
         message.insert(
             "1.0",
-            "Estructura inicial lista.\n\n"
-            "Esta fase solo prepara el proyecto y una ventana mínima. "
-            "No hay grabación, no hay mouse y no se presionan teclas reales.\n\n"
-            "La siguiente fase agregará rutas seguras para datos de usuario en APPDATA/SistemaMacrosV.",
+            "Rutas seguras listas.\n\n"
+            "Esta fase solo prepara carpetas de usuario compatibles con "
+            "ejecución como .py y como .exe. "
+            "No hay guardado funcional, no hay importación y no se presionan teclas reales.\n\n"
+            f"Datos de usuario: {get_user_data_dir()}\n"
+            f"Macros: {get_macros_dir()}\n"
+            f"Logs: {get_logs_dir()}\n"
+            f"Configuración: {get_config_dir()}\n\n"
+            "Los assets internos se resuelven aparte con resource_path().",
         )
         message.configure(state="disabled")
 
