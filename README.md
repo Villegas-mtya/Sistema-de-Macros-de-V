@@ -4,7 +4,7 @@ Sistema de Macros de V será una aplicación de escritorio en Python para constr
 
 ## Alcance de esta fase
 
-Esta tercera fase completa el mapeo, normalización y validación de teclas para macros manuales de teclado. La aplicación ya puede reconocer teclas en modo simple y modo avanzado, y convertirlas a valores internos estables para JSON.
+Esta cuarta fase agrega almacenamiento, carga, importación y exportación de macros en JSON sobre la base de mapeo, normalización y validación de teclas de Fase 3. La aplicación ya puede reconocer teclas en modo simple y modo avanzado, convertirlas a valores internos estables y validar la estructura básica de una macro guardable.
 
 En esta fase todavía no se implementa ejecución de macros. Por seguridad, la ejecución real de teclas no será flujo recomendado hasta que existan y funcionen F9 global y el botón **Detener ahora**.
 
@@ -20,8 +20,6 @@ En esta fase todavía no se implementa ejecución de macros. Por seguridad, la e
 - No lee memoria.
 - No interactúa directamente con juegos.
 - No ejecuta macros automáticamente al abrir.
-- No guarda macros funcionales todavía.
-- No importa macros funcionales todavía.
 
 ## Instalación
 
@@ -72,7 +70,7 @@ Una acción básica conserva esta estructura:
 }
 ```
 
-Esta fase solo valida y normaliza teclas; no guarda, importa ni ejecuta macros todavía.
+La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON, pero todavía no ejecuta macros.
 
 ## Rutas de usuario
 
@@ -178,3 +176,88 @@ build.bat
 ```
 
 El build inicial usa PyInstaller en modo `--onedir` y no falla si `assets/app_icon.ico` no existe.
+
+## Fase 4: almacenamiento JSON de macros
+
+La Fase 4 agrega almacenamiento, carga, importación y exportación de macros en archivos `.json`. Esta fase solo trabaja con datos: todavía no ejecuta macros, no activa F9 global, no implementa un runner operativo, no captura teclado para grabar acciones y no agrega mouse, clicks ni movimientos.
+
+### Dónde se guardan las macros
+
+Las macros internas se guardan siempre en la carpeta segura de usuario:
+
+```text
+APPDATA/SistemaMacrosV/macros
+```
+
+En Windows normalmente equivale a:
+
+```text
+C:\Users\USUARIO\AppData\Roaming\SistemaMacrosV\macros
+```
+
+El código usa `get_macros_dir()` desde `app/app_paths.py`, por lo que no guarda macros junto al ejecutable, no depende del directorio actual de ejecución y no escribe dentro de `sys._MEIPASS` cuando la aplicación se empaqueta.
+
+### Formato JSON base
+
+Una macro válida de Fase 4 usa esta estructura mínima:
+
+```json
+{
+  "app": "Sistema de Macros de V",
+  "version": "1.0",
+  "actions": [
+    {
+      "key": "enter",
+      "base_delay": 5.0,
+      "variation_mode": "medium"
+    }
+  ],
+  "initial_delay": 5.0,
+  "repetitions": 10,
+  "infinite": false,
+  "cooldown_base": 80.0,
+  "cooldown_variation": "light",
+  "execution_mode": "real",
+  "key_selection_mode": "simple"
+}
+```
+
+Campos validados:
+
+- `actions` debe ser una lista.
+- Cada acción debe tener `key`, `base_delay` y `variation_mode`.
+- `key` debe ser una tecla soportada por `app.key_mapper.validate_key()`.
+- `base_delay`, `initial_delay` y `cooldown_base` deben ser números mayores o iguales a cero.
+- `variation_mode` y `cooldown_variation` aceptan `fixed`, `light`, `medium` o `high`.
+- `infinite` debe ser booleano.
+- `repetitions` debe ser entero mayor o igual a 1 cuando `infinite` es `false`.
+- `execution_mode` acepta `real`, `test_log` o `test_keys` como valores declarativos para fases posteriores.
+- `key_selection_mode` acepta `simple` o `advanced`.
+
+### Importación y exportación
+
+`app/macro_storage.py` expone estas funciones principales:
+
+- `get_default_macro_template()`: devuelve una plantilla nueva y validable.
+- `save_macro(macro_data, file_name)`: valida y guarda en `APPDATA/SistemaMacrosV/macros` con extensión `.json`.
+- `load_macro(file_name)`: carga y valida una macro interna.
+- `list_saved_macros()`: devuelve una lista ordenada de rutas `Path` a macros `.json` internas.
+- `delete_macro(file_name)`: elimina solo macros `.json` internas.
+- `import_macro(source_path)`: importa un `.json` externo validado y evita sobrescrituras con nombres únicos.
+- `export_macro(file_name, destination_path)`: exporta una macro interna validada a una carpeta o archivo externo.
+
+Los nombres internos de macro rechazan rutas absolutas, carpetas y traversal como `../` para evitar escrituras fuera de la carpeta segura.
+
+### Pruebas rápidas de Fase 4 en PowerShell
+
+```powershell
+python -m compileall app
+```
+
+```powershell
+python -c "from app.macro_storage import get_default_macro_template, save_macro, load_macro, list_saved_macros; data=get_default_macro_template(); path=save_macro(data, 'prueba_fase_4'); print(path); loaded=load_macro('prueba_fase_4'); print(loaded['app']); print(len(list_saved_macros()) >= 1)"
+```
+
+```powershell
+python -c "from app.validators import validate_macro_data; from app.macro_storage import get_default_macro_template; print(validate_macro_data(get_default_macro_template()))"
+```
