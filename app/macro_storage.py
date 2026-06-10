@@ -13,13 +13,23 @@ import shutil
 from copy import deepcopy
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 from app import APP_NAME, APP_VERSION
 from app.app_paths import get_macros_dir
 from app.validators import validate_macro_data
 
 JSON_EXTENSION = ".json"
+
+
+class MacroFileInfo(TypedDict):
+    """Información mínima para mostrar una macro guardada en UI."""
+
+    name: str
+    file_name: str
+    path: str
+
+
 DEFAULT_MACRO_DATA: dict[str, Any] = {
     "app": APP_NAME,
     "version": APP_VERSION,
@@ -78,18 +88,27 @@ def load_macro(file_name: str | Path) -> dict[str, Any]:
     return macro_data
 
 
-def list_saved_macros() -> list[Path]:
-    """Devuelve rutas ``Path`` ordenadas de archivos ``.json`` internos.
+def list_saved_macros() -> list[MacroFileInfo]:
+    """Devuelve metadatos ordenados de macros ``.json`` internas.
 
-    La lista solo incluye archivos reales dentro de ``get_macros_dir()``. No
-    devuelve carpetas ni archivos con otras extensiones.
+    La lista solo incluye archivos reales dentro de ``get_macros_dir()``. Cada
+    elemento trae ``name`` sin extensión, ``file_name`` con extensión y ``path``
+    absoluto como texto para que la UI no tenga que reconstruir nombres.
     """
     macros_dir = get_macros_dir()
-    return sorted(
+    macro_files = sorted(
         file_path
         for file_path in macros_dir.glob(f"*{JSON_EXTENSION}")
         if file_path.is_file()
     )
+    return [
+        {
+            "name": file_path.stem,
+            "file_name": file_path.name,
+            "path": str(file_path.resolve()),
+        }
+        for file_path in macro_files
+    ]
 
 
 def delete_macro(file_name: str | Path) -> bool:
