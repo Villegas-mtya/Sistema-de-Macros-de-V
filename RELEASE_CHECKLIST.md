@@ -126,7 +126,35 @@ Test-Path "dist\Sistema de Macros de V\Sistema de Macros de V.exe"
 - [ ] Confirmar que el comando anterior devuelve `True`.
 - [ ] Confirmar que no se agregó `build/`, `dist/`, `*.spec` ni `*.exe` al control de versiones.
 
-## 10. QA manual del ejecutable
+## 10. Build manual en GitHub Actions
+
+- [ ] Abrir GitHub Actions en el repositorio.
+- [ ] Ejecutar manualmente el workflow **Build manual de release candidate** (`release-build.yml`) con **Run workflow**.
+- [ ] Confirmar que el workflow corre sobre `windows-latest` y configura Python 3.11.
+- [ ] Confirmar que el workflow termina en verde.
+- [ ] Confirmar que antes del build ejecutó `compileall`, `unittest` y la verificación estática de seguridad.
+- [ ] Confirmar que el workflow ejecutó `build.bat`.
+- [ ] Confirmar que el workflow no ejecutó el `.exe`, no abrió la UI y no ejecutó `python main.py`.
+- [ ] Confirmar que el workflow no publicó un GitHub Release y no creó tags automáticamente.
+- [ ] Descargar el artifact **Sistema-de-Macros-de-V-release-candidate**.
+- [ ] Confirmar que el artifact contiene la carpeta generada `Sistema de Macros de V` y el ejecutable `Sistema de Macros de V.exe`.
+
+## 11. QA manual del ejecutable descargado desde artifact
+
+- [ ] Extraer el artifact descargado en una carpeta temporal fuera del repositorio.
+- [ ] Abrir manualmente `Sistema de Macros de V.exe` desde la carpeta extraída.
+- [ ] Confirmar que la ventana abre sin consola obligatoria.
+- [ ] Repetir una prueba corta de constructor manual.
+- [ ] Repetir una prueba corta de guardado/carga.
+- [ ] Repetir una prueba corta de importación/exportación.
+- [ ] Repetir una prueba corta de previsualización.
+- [ ] Repetir una prueba corta de ejecución `test_log`.
+- [ ] Repetir una prueba corta de **Detener ahora**.
+- [ ] Confirmar que el ejecutable descargado sigue solo en `execution_mode = "test_log"`.
+- [ ] Confirmar que `execution_mode = "real"` sigue bloqueado.
+- [ ] Confirmar que `execution_mode = "test_keys"` sigue bloqueado.
+
+## 12. QA manual del ejecutable local
 
 - [ ] Abrir `dist\Sistema de Macros de V\Sistema de Macros de V.exe`.
 - [ ] Confirmar que la ventana abre sin consola obligatoria.
@@ -138,7 +166,7 @@ Test-Path "dist\Sistema de Macros de V\Sistema de Macros de V.exe"
 - [ ] Repetir una prueba corta de **Detener ahora**.
 - [ ] Confirmar que el ejecutable mantiene los mismos límites de seguridad que `python main.py`.
 
-## 11. Confirmación de límites de seguridad
+## 13. Confirmación de límites de seguridad
 
 - [ ] Confirmar que no hay ejecución real de teclas.
 - [ ] Confirmar que `execution_mode = "real"` sigue bloqueado.
@@ -150,11 +178,12 @@ Test-Path "dist\Sistema de Macros de V\Sistema de Macros de V.exe"
 - [ ] Confirmar que no hay movimientos de mouse.
 - [ ] Confirmar que no se agregaron `recorder.py`, `player.py` ni módulos equivalentes de ejecución real.
 
-## 12. Cierre de release candidate
+## 14. Cierre de release candidate
 
-- [ ] Revisar `README.md` y confirmar que documenta Fase 15.
+- [ ] Revisar `README.md` y confirmar que documenta Fase 16.
 - [ ] Revisar esta checklist y confirmar que todos los puntos aplicables están marcados.
 - [ ] Confirmar que el CI está en verde.
+- [ ] Confirmar que el workflow manual `release-build` está en verde cuando se use para distribuir artifact.
 - [ ] Confirmar que Git está limpio después de limpiar artefactos locales no versionados.
 
 ```powershell
@@ -163,6 +192,6 @@ git status --short --branch
 
 - [ ] Documentar cualquier limitación conocida antes de distribuir la release candidate.
 
-## Pendiente para Fase 16
+## Pendiente para Fase 17
 
-Fase 16 no está implementada en esta release candidate. Cualquier avance posterior debe tener una especificación nueva y explícita. En particular, no se debe habilitar ejecución real, `test_keys`, grabación, mouse, clicks ni movimientos sin una fase autorizada y controles de seguridad completos.
+Fase 17 no está implementada en esta release candidate. Cualquier avance posterior debe tener una especificación nueva y explícita. En particular, no se debe habilitar ejecución real, `test_keys`, grabación, mouse, clicks ni movimientos sin una fase autorizada y controles de seguridad completos.
