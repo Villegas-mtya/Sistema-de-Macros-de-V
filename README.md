@@ -4,15 +4,17 @@ Sistema de Macros de V será una aplicación de escritorio en Python para constr
 
 ## Alcance actual
 
-El proyecto ya integra las Fases 1 a 6 sobre una base segura y progresiva:
+El proyecto ya integra las Fases 1 a 8 sobre una base segura y progresiva:
 
 - **Fase 4**: almacenamiento, carga, listado, borrado, importación y exportación de macros en JSON.
 - **Fase 5**: previsualización declarativa y estimación de duración antes de ejecutar.
 - **Fase 6**: runner de simulación en modo prueba **solo log**.
+- **Fase 7**: parada de emergencia F9 y control de detención en el runner.
+- **Fase 8**: integración inicial en UI con previsualización, logs visibles y botón **Detener ahora**.
 
-La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración y recorrer una macro validada sin presionar teclas reales.
+La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración, recorrer una macro validada sin presionar teclas reales y mostrar el flujo desde una UI inicial de CustomTkinter.
 
-Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan en el runner de Fase 6 hasta que existan controles de emergencia como F9 global y el botón operativo **Detener ahora**.
+Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 8 solo permite ejecutar simulaciones `test_log` desde la UI y el botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
 
 ## Lo que esta aplicación no hace
 
@@ -76,7 +78,7 @@ Una acción básica conserva esta estructura:
 }
 ```
 
-La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; y la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log.
+La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log; la Fase 7 agrega parada de emergencia; y la Fase 8 integra el flujo básico en la UI.
 
 ## Rutas de usuario
 
@@ -361,7 +363,7 @@ medium = 0.30 s
 high   = 0.50 s
 ```
 
-F9 global, listener global, ejecución real de teclas, botón operativo **Detener ahora** e integración visual con `app/ui.py` quedan para fases posteriores. Esta fase permite probar el flujo de ejecución sin riesgo porque todo queda limitado a logs.
+F9 global, listener global, ejecución real de teclas, botón operativo **Detener ahora** e integración visual con `app/ui.py` quedan documentados como avances posteriores a Fase 6. Desde Fase 8 ya existe integración visual básica, pero el runner sigue limitado a logs y no pulsa teclas reales.
 
 ### Pruebas rápidas de Fase 6 en PowerShell
 
@@ -394,7 +396,7 @@ Características principales:
 - La única escucha global permitida en esta fase es `F9`; cualquier otra tecla se ignora sin guardarse, sin registrarse y sin usarse para acciones.
 - F9 solo detiene una simulación en curso: no graba teclas, no captura acciones, no registra pulsaciones y no habilita hotkeys configurables.
 - Los delays se revisan en intervalos cortos para detectar `stop()`, parada de emergencia o F9 sin esperar el delay completo.
-- Pendiente para fases futuras: botón visual **Detener ahora**, integración con `app/ui.py`, modal gráfico, `test_keys` solo si se autoriza después y ejecución real solo después de controles de seguridad completos.
+- Integrado en Fase 8: botón visual **Detener ahora** e integración básica con `app/ui.py`. Pendiente para fases futuras: modal gráfico completo, `test_keys` solo si se autoriza después y ejecución real solo después de controles de seguridad completos.
 - Fuera del alcance del proyecto: grabación de macros, captura de teclado para construir acciones, mouse, clicks y movimientos.
 
 Eventos relevantes:
@@ -425,3 +427,57 @@ python -c "from app.macro_storage import get_default_macro_template; from app.ma
 ```powershell
 python -c "from pathlib import Path; text=Path('app/macro_runner.py').read_text(encoding='utf-8'); forbidden=['Controller(', '.press(', '.release(']; print(all(item not in text for item in forbidden))"
 ```
+
+
+## Fase 8: integración inicial de UI
+
+La Fase 8 actualiza `app/ui.py` para unir visualmente la plantilla de macro, la previsualización declarativa y el runner `test_log` ya implementados. La pantalla principal de CustomTkinter conserva una estructura simple: encabezado, panel de estado, controles, panel de previsualización y log con scroll.
+
+Características principales:
+
+- Botón **Cargar plantilla**: reinicia una macro en memoria usando `get_default_macro_template()` y fuerza `execution_mode = "test_log"` para mantener la fase segura.
+- Botón **Previsualizar**: llama a `build_macro_preview()` y muestra número de acciones, repeticiones, si la macro es infinita, modo de ejecución, modo de selección, duración estimada y lista básica de acciones con nombre legible de tecla.
+- Botón **Ejecutar prueba solo log**: crea un `MacroRunner` en un hilo separado para que la UI no se congele. Los eventos se envían a una cola y se muestran en el log visible.
+- Botón **Detener ahora**: llama a `runner.stop()` y registra en pantalla que se solicitó la detención. No depende de F9.
+- Manejo de errores: los errores se muestran en el log y con `messagebox`.
+
+Límites de seguridad de Fase 8:
+
+- No usa `pynput.Controller`.
+- No presiona teclas reales.
+- No habilita ejecución real de macros.
+- No habilita `execution_mode = "real"`.
+- No habilita `execution_mode = "test_keys"`.
+- No implementa editor completo, grabación, captura de teclado, mouse, clicks, movimientos, `recorder.py`, `player.py`, `duration.py`, `storage.py`, `validation.py` ni estructura `src/`.
+
+### Pruebas rápidas de Fase 8 en PowerShell
+
+Compilar módulos de la aplicación:
+
+```powershell
+python -m compileall app
+```
+
+Probar plantilla, previsualización y runner `test_log` sin esperar segundos reales:
+
+```powershell
+python -c "from app.macro_storage import get_default_macro_template; from app.preview import build_macro_preview; from app.macro_runner import MacroRunner; data=get_default_macro_template(); data['execution_mode']='test_log'; preview=build_macro_preview(data); logs=[]; runner=MacroRunner(data, log_callback=logs.append, sleep_function=lambda seconds: None); runner.run(); print(preview['actions_count']); print(len(logs) > 0); print(logs[-1]['type'])"
+```
+
+Abrir la UI de Fase 8:
+
+```powershell
+python main.py
+```
+
+Flujo manual recomendado en la UI:
+
+1. Presionar **Cargar plantilla**.
+2. Presionar **Previsualizar** y revisar acciones/duración.
+3. Presionar **Ejecutar prueba solo log**.
+4. Confirmar que aparecen eventos como inicio, delay inicial, repetición, acción simulada, cooldown, detención o finalización.
+5. Presionar **Detener ahora** durante una espera para comprobar que la simulación se detiene en un punto seguro.
+
+## Pendiente para Fase 9
+
+La Fase 9 todavía no está implementada. Para esa fase quedan pendientes, si se aprueban explícitamente, mejoras más avanzadas como editor completo de acciones, carga/guardado desde la UI, importación/exportación visual, modal de previsualización más completo o nuevos controles seguros. La ejecución real de teclas y `test_keys` deben seguir bloqueados hasta que exista una fase autorizada con controles de seguridad completos.
