@@ -112,6 +112,11 @@ def validate_macro_data(macro_data: object) -> bool:
     if not isinstance(actions, list):
         return False
 
+    # Una macro ejecutable necesita al menos una acción. Aceptar listas vacías
+    # crearía previews y runs engañosos que no representan una macro real.
+    if not actions:
+        return False
+
     if not all(validate_macro_action(action) for action in actions):
         return False
 

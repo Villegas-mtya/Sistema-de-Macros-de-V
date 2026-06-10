@@ -4,7 +4,7 @@ Sistema de Macros de V será una aplicación de escritorio en Python para constr
 
 ## Alcance actual
 
-El proyecto ya integra las Fases 1 a 12 sobre una base segura y progresiva:
+El proyecto ya integra las Fases 1 a 13 sobre una base segura y progresiva:
 
 - **Fase 4**: almacenamiento, carga, listado, borrado, importación y exportación de macros en JSON.
 - **Fase 5**: previsualización declarativa y estimación de duración antes de ejecutar.
@@ -15,10 +15,11 @@ El proyecto ya integra las Fases 1 a 12 sobre una base segura y progresiva:
 - **Fase 10**: guardado visual, carga visual, eliminación, importación JSON y exportación JSON de macros desde la UI.
 - **Fase 11**: edición de acciones existentes, limpieza de selección y reordenamiento visual de acciones sin salir del modo seguro `test_log`.
 - **Fase 12**: empaquetado preliminar seguro con PyInstaller para generar un ejecutable Windows sin habilitar ejecución real.
+- **Fase 13**: pruebas automatizadas de regresión y seguridad con `unittest`, sin abrir UI ni presionar teclas reales.
 
 La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración, recorrer una macro validada sin presionar teclas reales y mostrar el flujo desde una UI inicial de CustomTkinter.
 
-Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 12 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
+Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 13 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
 
 ## Lo que esta aplicación no hace
 
@@ -82,7 +83,7 @@ Una acción básica conserva esta estructura:
 }
 ```
 
-La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log; la Fase 7 agrega parada de emergencia; la Fase 8 integra el flujo básico en la UI; la Fase 9 permite construir macros manualmente desde la interfaz; la Fase 10 agrega guardado, carga, importación y exportación visual; la Fase 11 agrega edición y reordenamiento de acciones existentes sin habilitar ejecución real; y la Fase 12 prepara el empaquetado seguro con PyInstaller.
+La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log; la Fase 7 agrega parada de emergencia; la Fase 8 integra el flujo básico en la UI; la Fase 9 permite construir macros manualmente desde la interfaz; la Fase 10 agrega guardado, carga, importación y exportación visual; la Fase 11 agrega edición y reordenamiento de acciones existentes sin habilitar ejecución real; la Fase 12 prepara el empaquetado seguro con PyInstaller; y la Fase 13 agrega pruebas automatizadas de regresión y seguridad con `unittest`.
 
 ## Rutas de usuario
 
@@ -254,7 +255,31 @@ El resultado esperado es `True`.
 - No se presionan teclas reales todavía.
 - No hay grabación de macros.
 - No hay captura de mouse, clicks ni movimientos.
-- Fase 12 es solo empaquetado preliminar; la Fase 13 queda pendiente para una etapa posterior.
+- Fase 12 es solo empaquetado preliminar; Fase 13 agrega pruebas automatizadas sin cambiar estos límites de seguridad.
+
+## Fase 13: pruebas automatizadas de regresión y seguridad
+
+La Fase 13 agrega una suite básica con `unittest` de la librería estándar para proteger el comportamiento ya implementado entre Fase 1 y Fase 12. El propósito es detectar regresiones en mapeo de teclas, validación de macros, previsualización, runner `test_log`, almacenamiento JSON y reglas estáticas de seguridad.
+
+Estas pruebas no abren la UI gráfica, no ejecutan `main.py`, no dependen de `$DISPLAY` y no presionan teclas reales. Los modos `real` y `test_keys` siguen bloqueados: las pruebas verifican que `MacroRunner` los rechace con `ValueError` y que `app/ui.py` y `app/macro_runner.py` no contengan llamadas directas a `Controller(`, `.press(` ni `.release(`.
+
+### Ejecutar pruebas en PowerShell
+
+Desde la raíz del proyecto:
+
+```powershell
+python -m compileall app
+```
+
+```powershell
+python -m unittest discover -s tests
+```
+
+```powershell
+python -c "from pathlib import Path; text=Path('app/ui.py').read_text(encoding='utf-8') + Path('app/macro_runner.py').read_text(encoding='utf-8'); forbidden=['Controller(', '.press(', '.release(']; print(all(item not in text for item in forbidden))"
+```
+
+El último comando debe imprimir `True`. La revisión de la UI gráfica se mantiene manual: ejecutar `python main.py`, comprobar visualmente el constructor, previsualización, guardado/carga e inicio/detención `test_log`, y cerrar la ventana sin habilitar ejecución real.
 
 ## Fase 4: almacenamiento JSON de macros
 
