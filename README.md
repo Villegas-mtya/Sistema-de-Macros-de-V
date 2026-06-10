@@ -381,3 +381,47 @@ except ValueError:
     ok=True
 print('real rechazado' if ok else 'ERROR')"
 ```
+
+## Fase 7: parada de emergencia F9 global
+
+La Fase 7 agrega control seguro de detención al runner sin avanzar a ejecución real. `app/macro_runner.py` sigue limitado a `execution_mode = "test_log"`: los modos `real` y `test_keys` continúan bloqueados porque todavía no existe una fase aprobada para presionar teclas reales.
+
+Características principales:
+
+- `MacroRunner.stop()` permite solicitar detención manual y cerrar la simulación en puntos seguros.
+- `MacroRunner.trigger_emergency_stop()` y `MacroRunner.request_emergency_stop()` permiten simular una parada de emergencia en pruebas sin presionar F9 físicamente.
+- `EmergencyStopController` puede iniciar y detener un listener global no bloqueante, limitado exclusivamente a `F9`.
+- La única escucha global permitida en esta fase es `F9`; cualquier otra tecla se ignora sin guardarse, sin registrarse y sin usarse para acciones.
+- F9 solo detiene una simulación en curso: no graba teclas, no captura acciones, no registra pulsaciones y no habilita hotkeys configurables.
+- Los delays se revisan en intervalos cortos para detectar `stop()`, parada de emergencia o F9 sin esperar el delay completo.
+- Pendiente para fases futuras: botón visual **Detener ahora**, integración con `app/ui.py`, modal gráfico, `test_keys` solo si se autoriza después y ejecución real solo después de controles de seguridad completos.
+- Fuera del alcance del proyecto: grabación de macros, captura de teclado para construir acciones, mouse, clicks y movimientos.
+
+Eventos relevantes:
+
+- `emergency_listener_started`: el listener global de F9 se inició.
+- `emergency_listener_stopped`: el listener global de F9 se detuvo.
+- `emergency_stop_triggered`: se disparó una parada de emergencia.
+- `stop_requested`: el runner detectó una solicitud de detención en un punto seguro.
+- `macro_stopped`: la macro simulada terminó detenida de forma segura.
+- `macro_finished`: la macro simulada terminó normalmente.
+
+Para usar el listener F9 en una integración futura, se debe iniciar explícitamente con `start_emergency_listener()` o crear el runner con `enable_emergency_listener=True`. En entornos sin soporte para listeners globales, las pruebas recomendadas usan `trigger_emergency_stop()` para no depender del teclado físico.
+
+### Pruebas rápidas de Fase 7 en PowerShell
+
+```powershell
+python -m compileall app
+```
+
+```powershell
+python -c "from app.macro_storage import get_default_macro_template; from app.macro_runner import MacroRunner; logs=[]; data=get_default_macro_template(); data['execution_mode']='test_log'; runner=MacroRunner(data, log_callback=logs.append, sleep_function=lambda seconds: None); runner.stop(); runner.run(); print(any(event['type'] in ('stop_requested','macro_stopped') for event in logs)); print(logs[-1]['type'])"
+```
+
+```powershell
+python -c "from app.macro_storage import get_default_macro_template; from app.macro_runner import MacroRunner; logs=[]; data=get_default_macro_template(); data['execution_mode']='test_log'; runner=MacroRunner(data, log_callback=logs.append, sleep_function=lambda seconds: None); trigger = getattr(runner, 'trigger_emergency_stop', None) or getattr(runner, 'request_emergency_stop', None) or runner.stop; trigger(); runner.run(); print(any(event['type'] in ('emergency_stop_triggered','stop_requested','macro_stopped') for event in logs)); print(logs[-1]['type'])"
+```
+
+```powershell
+python -c "from pathlib import Path; text=Path('app/macro_runner.py').read_text(encoding='utf-8'); forbidden=['Controller(', '.press(', '.release(']; print(all(item not in text for item in forbidden))"
+```
