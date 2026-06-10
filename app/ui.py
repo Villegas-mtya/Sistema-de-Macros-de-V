@@ -1,10 +1,10 @@
 """Interfaz principal de Sistema de Macros de V.
 
-Fase 10 integra almacenamiento visual sobre el constructor seguro de Fase 9.
-La pantalla permite crear acciones de teclado, guardar/cargar macros JSON,
-importar/exportar archivos, previsualizar los datos actuales y ejecutar solo una
-simulación ``test_log``. La UI sigue sin presionar teclas reales y bloquea los
-modos ``real`` y ``test_keys``.
+Fase 11 refina el constructor seguro de Fase 10.
+La pantalla permite crear y editar acciones de teclado, reordenarlas,
+guardar/cargar macros JSON, importar/exportar archivos, previsualizar los datos
+actuales y ejecutar solo una simulación ``test_log``. La UI sigue sin presionar
+teclas reales y bloquea los modos ``real`` y ``test_keys``.
 """
 
 from __future__ import annotations
@@ -61,7 +61,7 @@ KEY_SELECTION_MODES = ("simple", "advanced")
 
 
 class MacroApp(ctk.CTk):
-    """Ventana principal de Fase 10 con macros guardadas y runner ``test_log``."""
+    """Ventana principal de Fase 11 con edición visual y runner ``test_log``."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -90,6 +90,8 @@ class MacroApp(ctk.CTk):
             value=VARIATION_LABELS_BY_VALUE[self.current_macro["cooldown_variation"]]
         )
         self.selected_action_index_var = IntVar(value=0)
+        self.is_loading_action_selection = False
+        self.selected_action_index_var.trace_add("write", self._on_action_selection_changed)
         self.macro_name_var = StringVar(value="macro_prueba")
         self.saved_macro_var = StringVar(value="Sin macros guardadas")
         self.saved_macros: list[dict[str, str]] = []
@@ -102,6 +104,11 @@ class MacroApp(ctk.CTk):
         self.preview_button: ctk.CTkButton
         self.load_template_button: ctk.CTkButton
         self.add_action_button: ctk.CTkButton
+        self.update_action_button: ctk.CTkButton
+        self.clear_selection_button: ctk.CTkButton
+        self.move_action_up_button: ctk.CTkButton
+        self.move_action_down_button: ctk.CTkButton
+        self.duplicate_action_button: ctk.CTkButton
         self.delete_action_button: ctk.CTkButton
         self.clear_actions_button: ctk.CTkButton
         self.save_macro_button: ctk.CTkButton
@@ -229,7 +236,7 @@ class MacroApp(ctk.CTk):
         editor.grid(row=row, column=0, sticky="ew", padx=14, pady=(0, 10))
         editor.grid_columnconfigure(1, weight=1)
 
-        title = ctk.CTkLabel(editor, text="Nueva acción", font=ctk.CTkFont(weight="bold"), anchor="w")
+        title = ctk.CTkLabel(editor, text="Editor de acción", font=ctk.CTkFont(weight="bold"), anchor="w")
         title.grid(row=0, column=0, columnspan=2, sticky="ew", padx=12, pady=(12, 6))
 
         ctk.CTkLabel(editor, text="Modo de tecla", anchor="w").grid(
@@ -288,12 +295,31 @@ class MacroApp(ctk.CTk):
             variable=self.action_variation_var,
         ).grid(row=5, column=1, sticky="ew", padx=12, pady=4)
 
+        action_buttons = ctk.CTkFrame(editor, fg_color="transparent")
+        action_buttons.grid(row=6, column=0, columnspan=2, sticky="ew", padx=12, pady=(10, 12))
+        for column in range(3):
+            action_buttons.grid_columnconfigure(column, weight=1)
+
         self.add_action_button = ctk.CTkButton(
-            editor,
+            action_buttons,
             text="Agregar acción",
             command=self._add_action,
         )
-        self.add_action_button.grid(row=6, column=0, columnspan=2, sticky="ew", padx=12, pady=(10, 12))
+        self.add_action_button.grid(row=0, column=0, sticky="ew", padx=(0, 6))
+
+        self.update_action_button = ctk.CTkButton(
+            action_buttons,
+            text="Actualizar acción",
+            command=self._update_selected_action,
+        )
+        self.update_action_button.grid(row=0, column=1, sticky="ew", padx=6)
+
+        self.clear_selection_button = ctk.CTkButton(
+            action_buttons,
+            text="Limpiar selección",
+            command=self._clear_action_selection,
+        )
+        self.clear_selection_button.grid(row=0, column=2, sticky="ew", padx=(6, 0))
 
     def _build_actions_list(self, parent: ctk.CTkFrame, row: int) -> None:
         """Crea una lista visual seleccionable de acciones configuradas."""
@@ -327,15 +353,36 @@ class MacroApp(ctk.CTk):
 
         buttons = ctk.CTkFrame(list_panel, fg_color="transparent")
         buttons.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 12))
-        buttons.grid_columnconfigure(0, weight=1)
-        buttons.grid_columnconfigure(1, weight=1)
+        for column in range(5):
+            buttons.grid_columnconfigure(column, weight=1)
+
+        self.move_action_up_button = ctk.CTkButton(
+            buttons,
+            text="Subir acción",
+            command=self._move_selected_action_up,
+        )
+        self.move_action_up_button.grid(row=0, column=0, sticky="ew", padx=(0, 4))
+
+        self.move_action_down_button = ctk.CTkButton(
+            buttons,
+            text="Bajar acción",
+            command=self._move_selected_action_down,
+        )
+        self.move_action_down_button.grid(row=0, column=1, sticky="ew", padx=4)
+
+        self.duplicate_action_button = ctk.CTkButton(
+            buttons,
+            text="Duplicar acción",
+            command=self._duplicate_selected_action,
+        )
+        self.duplicate_action_button.grid(row=0, column=2, sticky="ew", padx=4)
 
         self.delete_action_button = ctk.CTkButton(
             buttons,
             text="Eliminar acción",
             command=self._delete_selected_or_last_action,
         )
-        self.delete_action_button.grid(row=0, column=0, sticky="ew", padx=(0, 6))
+        self.delete_action_button.grid(row=0, column=3, sticky="ew", padx=4)
 
         self.clear_actions_button = ctk.CTkButton(
             buttons,
@@ -344,7 +391,7 @@ class MacroApp(ctk.CTk):
             fg_color=("#92400e", "#78350f"),
             hover_color=("#78350f", "#451a03"),
         )
-        self.clear_actions_button.grid(row=0, column=1, sticky="ew", padx=(6, 0))
+        self.clear_actions_button.grid(row=0, column=4, sticky="ew", padx=(4, 0))
 
     def _build_macro_config(self, parent: ctk.CTkFrame, row: int) -> None:
         """Crea controles de delays, repeticiones y cooldown de la macro."""
@@ -839,7 +886,7 @@ class MacroApp(ctk.CTk):
         self._render_preview()
 
     def _load_macro_into_controls(self, macro_data: dict[str, Any]) -> None:
-        """Copia una macro validada o plantilla hacia los controles de Fase 10."""
+        """Copia una macro validada o plantilla hacia los controles de Fase 11."""
         self.actions = copy.deepcopy(macro_data.get("actions", []))
         self.key_selection_mode_var.set(macro_data.get("key_selection_mode", "simple"))
         self.initial_delay_var.set(str(float(macro_data.get("initial_delay", 0.0))))
@@ -848,7 +895,48 @@ class MacroApp(ctk.CTk):
         self.cooldown_base_var.set(str(float(macro_data.get("cooldown_base", 0.0))))
         cooldown_variation = macro_data.get("cooldown_variation", "fixed")
         self.cooldown_variation_var.set(VARIATION_LABELS_BY_VALUE.get(cooldown_variation, VARIATION_LABELS[0]))
-        self.selected_action_index_var.set(0)
+        self._clear_action_selection(log_result=False)
+        self._sync_key_input_state()
+
+    def _on_action_selection_changed(self, *_args: object) -> None:
+        """Carga en el editor la acción seleccionada sin bloquear la UI."""
+        if self.is_loading_action_selection or not hasattr(self, "actions_list_frame"):
+            return
+
+        selected_index = self._get_selected_action_index()
+        if selected_index is None:
+            self._sync_action_buttons_state()
+            return
+
+        self._load_action_into_editor(self.actions[selected_index - 1])
+        self._sync_action_buttons_state()
+        self._set_status(f"Estado: acción {selected_index} seleccionada para edición")
+
+    def _load_action_into_editor(self, action: dict[str, Any]) -> None:
+        """Copia tecla, delay y variación de una acción existente al constructor."""
+        normalized_key = normalize_key(action.get("key"))
+        key_display_name = get_key_display_name(normalized_key)
+
+        if key_display_name in self.simple_key_options:
+            self.key_selection_mode_var.set("simple")
+            self.simple_key_var.set(str(key_display_name))
+            self.advanced_key_var.set(str(normalized_key or "enter"))
+        else:
+            self.key_selection_mode_var.set("advanced")
+            self.advanced_key_var.set(str(normalized_key or action.get("key", "")))
+
+        self.action_delay_var.set(str(float(action.get("base_delay", 0.0))))
+        variation = action.get("variation_mode", "fixed")
+        self.action_variation_var.set(VARIATION_LABELS_BY_VALUE.get(variation, VARIATION_LABELS[0]))
+        self._sync_key_input_state()
+
+    def _reset_action_editor_for_new_action(self) -> None:
+        """Deja el editor en un estado predecible para agregar una acción nueva."""
+        self.key_selection_mode_var.set("simple")
+        self.simple_key_var.set(self.simple_key_options[0])
+        self.advanced_key_var.set("enter")
+        self.action_delay_var.set("1.0")
+        self.action_variation_var.set(VARIATION_LABELS_BY_VALUE["fixed"])
         self._sync_key_input_state()
 
     def _add_action(self) -> None:
@@ -864,7 +952,7 @@ class MacroApp(ctk.CTk):
             return
 
         self.actions.append(action)
-        self.selected_action_index_var.set(len(self.actions))
+        self._select_action_index(len(self.actions))
         self._render_actions_list()
         self._append_log_line(
             f"Acción agregada: {self._get_action_display_text(action, len(self.actions))}."
@@ -892,6 +980,118 @@ class MacroApp(ctk.CTk):
             "variation_mode": self._get_variation_value(self.action_variation_var.get()),
         }
 
+    def _update_selected_action(self) -> None:
+        """Reemplaza la acción seleccionada usando los valores actuales del editor."""
+        if self._is_runner_active():
+            self._show_error("No se pueden actualizar acciones mientras la prueba está activa.")
+            return
+
+        selected_index = self._get_selected_action_index()
+        if selected_index is None:
+            self._show_error("Selecciona una acción antes de presionar 'Actualizar acción'.")
+            return
+
+        try:
+            action = self._build_action_from_controls()
+        except ValueError as error:
+            self._show_error(str(error))
+            return
+
+        self.actions[selected_index - 1] = action
+        self._select_action_index(selected_index)
+        self._render_actions_list()
+        self._append_log_line(
+            f"Acción {selected_index} actualizada: {self._get_action_display_text(action, selected_index)}."
+        )
+        self._set_status("Estado: acción actualizada")
+        self._render_preview()
+
+    def _clear_action_selection(self, log_result: bool = True) -> None:
+        """Quita la selección y prepara controles para agregar sin borrar acciones."""
+        self._select_action_index(0, load_controls=False)
+        self._reset_action_editor_for_new_action()
+        self._render_actions_list()
+        if log_result:
+            self._append_log_line("Selección limpiada. Los controles están listos para agregar una acción nueva.")
+            self._set_status("Estado: selección de acción limpiada")
+
+    def _move_selected_action_up(self) -> None:
+        """Mueve la acción seleccionada una posición arriba si es posible."""
+        self._move_selected_action(direction=-1)
+
+    def _move_selected_action_down(self) -> None:
+        """Mueve la acción seleccionada una posición abajo si es posible."""
+        self._move_selected_action(direction=1)
+
+    def _move_selected_action(self, direction: int) -> None:
+        """Reordena una acción manteniendo selección y previsualización actualizada."""
+        if self._is_runner_active():
+            self._show_error("No se pueden reordenar acciones mientras la prueba está activa.")
+            return
+
+        selected_index = self._get_selected_action_index()
+        if selected_index is None:
+            self._show_error("Selecciona una acción antes de cambiar su orden.")
+            return
+
+        new_index = selected_index + direction
+        if new_index < 1 or new_index > len(self.actions):
+            self._append_log_line("La acción seleccionada ya está en el límite de la lista; no se cambió el orden.")
+            self._set_status("Estado: orden sin cambios")
+            return
+
+        current_position = selected_index - 1
+        new_position = new_index - 1
+        self.actions[current_position], self.actions[new_position] = (
+            self.actions[new_position],
+            self.actions[current_position],
+        )
+        self._select_action_index(new_index)
+        self._render_actions_list()
+        self._append_log_line(f"Acción movida de posición {selected_index} a {new_index}.")
+        self._set_status("Estado: acción reordenada")
+        self._render_preview()
+
+    def _duplicate_selected_action(self) -> None:
+        """Duplica la acción seleccionada y selecciona la copia recién creada."""
+        if self._is_runner_active():
+            self._show_error("No se pueden duplicar acciones mientras la prueba está activa.")
+            return
+
+        selected_index = self._get_selected_action_index()
+        if selected_index is None:
+            self._show_error("Selecciona una acción antes de duplicarla.")
+            return
+
+        duplicated_action = copy.deepcopy(self.actions[selected_index - 1])
+        insert_position = selected_index
+        self.actions.insert(insert_position, duplicated_action)
+        new_index = insert_position + 1
+        self._select_action_index(new_index)
+        self._render_actions_list()
+        self._append_log_line(f"Acción {selected_index} duplicada en la posición {new_index}.")
+        self._set_status("Estado: acción duplicada")
+        self._render_preview()
+
+    def _get_selected_action_index(self) -> int | None:
+        """Devuelve un índice 1-based válido o ``None`` si no hay selección."""
+        selected_index = self.selected_action_index_var.get()
+        if 1 <= selected_index <= len(self.actions):
+            return selected_index
+        return None
+
+    def _select_action_index(self, index: int, load_controls: bool = True) -> None:
+        """Actualiza la selección evitando callbacks intermedios no deseados."""
+        self.is_loading_action_selection = not load_controls
+        try:
+            self.selected_action_index_var.set(index)
+        finally:
+            self.is_loading_action_selection = False
+
+        if load_controls and self._get_selected_action_index() is not None:
+            self._load_action_into_editor(self.actions[index - 1])
+        self._sync_action_buttons_state()
+
     def _delete_selected_or_last_action(self) -> None:
         """Elimina la acción seleccionada; si no hay selección, elimina la última."""
         if self._is_runner_active():
@@ -902,12 +1102,13 @@ class MacroApp(ctk.CTk):
             self._append_log_line("No hay acciones para eliminar.")
             return
 
-        selected_index = self.selected_action_index_var.get()
-        if selected_index < 1 or selected_index > len(self.actions):
-            selected_index = len(self.actions)
+        selected_index = self._get_selected_action_index() or len(self.actions)
 
         removed_action = self.actions.pop(selected_index - 1)
-        self.selected_action_index_var.set(min(selected_index, len(self.actions)))
+        next_index = min(selected_index, len(self.actions))
+        self._select_action_index(next_index if next_index else 0, load_controls=bool(next_index))
+        if not self.actions:
+            self._reset_action_editor_for_new_action()
         self._render_actions_list()
         self._append_log_line(
             f"Acción eliminada: {self._get_action_display_text(removed_action, selected_index)}."
@@ -935,7 +1136,8 @@ class MacroApp(ctk.CTk):
 
         removed_count = len(self.actions)
         self.actions.clear()
-        self.selected_action_index_var.set(0)
+        self._select_action_index(0, load_controls=False)
+        self._reset_action_editor_for_new_action()
         self._render_actions_list()
         self._append_log_line(f"Se limpiaron {removed_count} acciones del constructor.")
         self._set_status("Estado: acciones limpiadas")
@@ -946,6 +1148,7 @@ class MacroApp(ctk.CTk):
         for child in self.actions_list_frame.winfo_children():
             child.destroy()
 
+        selected_index = self._get_selected_action_index()
         self.action_count_label.configure(text=f"Acciones configuradas: {len(self.actions)}")
         if not self.actions:
             ctk.CTkLabel(
@@ -953,28 +1156,57 @@ class MacroApp(ctk.CTk):
                 text="Sin acciones. Agrega al menos una acción para ejecutar una macro.",
                 anchor="w",
             ).grid(row=0, column=0, sticky="ew", padx=8, pady=8)
-            self.delete_action_button.configure(state="disabled")
-            self.clear_actions_button.configure(state="disabled")
+            self._sync_action_buttons_state()
             return
 
-        self.delete_action_button.configure(state="normal")
-        self.clear_actions_button.configure(state="normal")
         for index, action in enumerate(self.actions, start=1):
+            is_selected = index == selected_index
             row = ctk.CTkRadioButton(
                 self.actions_list_frame,
-                text=self._get_action_display_text(action, index),
+                text=self._get_action_display_text(action, index, is_selected=is_selected),
                 value=index,
                 variable=self.selected_action_index_var,
+                command=lambda action_index=index: self._select_action_index(action_index),
             )
             row.grid(row=index - 1, column=0, sticky="ew", padx=8, pady=3)
 
-    def _get_action_display_text(self, action: dict[str, Any], index: int) -> str:
+        self._sync_action_buttons_state()
+
+    def _get_action_display_text(
+        self,
+        action: dict[str, Any],
+        index: int,
+        is_selected: bool = False,
+    ) -> str:
         """Devuelve una fila legible para la tabla/lista de acciones."""
         key_display_name = get_key_display_name(action.get("key")) or str(action.get("key"))
         variation = action.get("variation_mode", "fixed")
         variation_label = VARIATION_LABELS_BY_VALUE.get(variation, str(variation))
         base_delay = float(action.get("base_delay", 0.0))
-        return f"{index}. {key_display_name} | {base_delay:.2f}s | {variation_label} ({variation})"
+        selection_marker = "▶ " if is_selected else "  "
+        return f"{selection_marker}{index}. {key_display_name} | {base_delay:.2f}s | {variation_label} ({variation})"
+
+    def _sync_action_buttons_state(self) -> None:
+        """Sincroniza botones de edición con selección, límites y ejecución activa."""
+        if not hasattr(self, "update_action_button"):
+            return
+
+        is_running = self._is_runner_active()
+        has_actions = bool(self.actions)
+        selected_index = self._get_selected_action_index()
+        has_selection = selected_index is not None
+        editable_state = "normal" if not is_running else "disabled"
+        selection_state = "normal" if has_selection and not is_running else "disabled"
+        any_action_state = "normal" if has_actions and not is_running else "disabled"
+
+        self.add_action_button.configure(state=editable_state)
+        self.update_action_button.configure(state=editable_state)
+        self.clear_selection_button.configure(state=selection_state)
+        self.move_action_up_button.configure(state=selection_state)
+        self.move_action_down_button.configure(state=selection_state)
+        self.duplicate_action_button.configure(state=selection_state)
+        self.delete_action_button.configure(state=any_action_state)
+        self.clear_actions_button.configure(state=any_action_state)
 
     def _render_preview(self) -> None:
         """Genera y muestra la previsualización usando la macro editada actual."""
@@ -1251,6 +1483,11 @@ class MacroApp(ctk.CTk):
         self.preview_button.configure(state=state)
         self.run_button.configure(state=state)
         self.add_action_button.configure(state=state)
+        self.update_action_button.configure(state="disabled" if is_running else "normal")
+        self.clear_selection_button.configure(state="disabled" if is_running else "normal")
+        self.move_action_up_button.configure(state="disabled" if is_running else "normal")
+        self.move_action_down_button.configure(state="disabled" if is_running else "normal")
+        self.duplicate_action_button.configure(state="disabled" if is_running else "normal")
         self.delete_action_button.configure(state=state if self.actions else "disabled")
         self.clear_actions_button.configure(state=state if self.actions else "disabled")
         self.save_macro_button.configure(state=state)
@@ -1268,6 +1505,8 @@ class MacroApp(ctk.CTk):
             self.saved_macros_menu.configure(state="normal")
             self._sync_saved_macro_buttons_state()
             self._sync_key_input_state()
+
+        self._sync_action_buttons_state()
 
     def _is_runner_active(self) -> bool:
         """Indica si existe un hilo de runner vivo."""

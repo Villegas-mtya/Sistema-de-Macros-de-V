@@ -4,19 +4,20 @@ Sistema de Macros de V será una aplicación de escritorio en Python para constr
 
 ## Alcance actual
 
-El proyecto ya integra las Fases 1 a 10 sobre una base segura y progresiva:
+El proyecto ya integra las Fases 1 a 11 sobre una base segura y progresiva:
 
 - **Fase 4**: almacenamiento, carga, listado, borrado, importación y exportación de macros en JSON.
 - **Fase 5**: previsualización declarativa y estimación de duración antes de ejecutar.
 - **Fase 6**: runner de simulación en modo prueba **solo log**.
 - **Fase 7**: parada de emergencia F9 y control de detención en el runner.
 - **Fase 8**: integración inicial en UI con previsualización, logs visibles y botón **Detener ahora**.
-- **Fase 9**: constructor manual de macros en la UI con acciones editables, configuración básica, previsualización y ejecución `test_log` de la macro editada.
+- **Fase 9**: constructor manual de macros en la UI con acciones configurables, configuración básica, previsualización y ejecución `test_log` de la macro editada.
 - **Fase 10**: guardado visual, carga visual, eliminación, importación JSON y exportación JSON de macros desde la UI.
+- **Fase 11**: edición de acciones existentes, limpieza de selección y reordenamiento visual de acciones sin salir del modo seguro `test_log`.
 
 La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración, recorrer una macro validada sin presionar teclas reales y mostrar el flujo desde una UI inicial de CustomTkinter.
 
-Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 10 solo permite ejecutar simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
+Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 11 solo permite ejecutar simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
 
 ## Lo que esta aplicación no hace
 
@@ -80,7 +81,7 @@ Una acción básica conserva esta estructura:
 }
 ```
 
-La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log; la Fase 7 agrega parada de emergencia; la Fase 8 integra el flujo básico en la UI; la Fase 9 permite construir macros manualmente desde la interfaz; y la Fase 10 agrega guardado, carga, importación y exportación visual sin habilitar ejecución real.
+La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log; la Fase 7 agrega parada de emergencia; la Fase 8 integra el flujo básico en la UI; la Fase 9 permite construir macros manualmente desde la interfaz; la Fase 10 agrega guardado, carga, importación y exportación visual; y la Fase 11 agrega edición y reordenamiento de acciones existentes sin habilitar ejecución real.
 
 ## Rutas de usuario
 
@@ -604,6 +605,69 @@ Flujo manual recomendado en la UI:
 7. Probar **Exportar JSON** con una macro seleccionada o, si no hay macros guardadas, con la macro actual.
 8. Presionar **Ejecutar prueba solo log** y **Detener ahora** para confirmar que la ejecución segura sigue funcionando.
 
-## Pendiente para Fase 11
+## Fase 11: edición y reordenamiento de acciones existentes
 
-Para una fase posterior quedan pendientes, si se aprueban explícitamente, edición avanzada de acciones existentes, previsualización modal más completa u otros refinamientos visuales. La ejecución real de teclas y `test_keys` deben seguir bloqueados hasta que exista una fase autorizada con controles de seguridad completos.
+La Fase 11 actualiza principalmente `app/ui.py` para refinar el constructor manual sin avanzar a ejecución real. La pantalla conserva encabezado, constructor de macros, lista visual de acciones, configuración de macro, macros guardadas, previsualización, log con scroll, ejecución no bloqueante `test_log` y botón **Detener ahora**.
+
+Características principales:
+
+- La lista visual permite seleccionar una acción existente. La acción seleccionada se marca con `▶` y sus datos se cargan en el editor.
+- Al seleccionar una acción se restauran sus controles básicos: tecla, modo simple/avanzado cuando corresponde, espera base y variación.
+- Botón **Actualizar acción**: toma los valores actuales del editor, valida tecla/delay/variación, reemplaza la acción seleccionada, actualiza la lista visual, prepara la previsualización y registra el cambio en el log.
+- Botón **Limpiar selección**: quita la selección actual, deja los controles listos para agregar una acción nueva y no borra acciones existentes.
+- Botones **Subir acción** y **Bajar acción**: reordenan la acción seleccionada, mantienen seleccionada la acción movida, actualizan la lista y registran el cambio en el log. Si la acción ya está al inicio o al final, no falla y solo informa que el orden no cambió.
+- Botón **Duplicar acción**: duplica la acción seleccionada, inserta la copia después de la original, selecciona la copia y registra el cambio en el log.
+- **Agregar acción**, **Eliminar acción** y **Limpiar acciones** siguen funcionando con el mismo enfoque seguro de fases anteriores.
+- **Guardar macro** guarda la macro editada con el orden actual de acciones.
+- **Cargar macro** e **Importar JSON** llenan acciones, configuración, lista visual, controles básicos y previsualización. Al cargar desde la UI se mantiene `execution_mode = "test_log"`.
+- **Exportar JSON** sigue funcionando con macros guardadas o con la macro actual validada.
+- **Previsualizar** y **Ejecutar prueba solo log** usan la macro editada actual, incluyendo acciones actualizadas y reordenadas.
+
+Límites de seguridad de Fase 11:
+
+- La ejecución sigue siendo únicamente `test_log`.
+- No hay ejecución real de teclas.
+- No se puede seleccionar ni ejecutar modo `real`.
+- No se puede seleccionar ni ejecutar modo `test_keys`.
+- No se implementa grabación de macros, captura de teclado para construir acciones, mouse, clicks, movimientos, `recorder.py`, `player.py`, `duration.py`, `storage.py`, `validation.py` ni estructura `src/`.
+
+### Pruebas rápidas de Fase 11 en PowerShell
+
+Compilar módulos de la aplicación:
+
+```powershell
+python -m compileall app
+```
+
+Validar una macro `test_log` con dos acciones en el orden actual:
+
+```powershell
+python -c "from app.validators import validate_macro_data; data={'app':'Sistema de Macros de V','version':'1.0','actions':[{'key':'enter','base_delay':1.0,'variation_mode':'fixed'},{'key':'space','base_delay':2.0,'variation_mode':'medium'}],'initial_delay':0.0,'repetitions':1,'infinite':False,'cooldown_base':0.0,'cooldown_variation':'fixed','execution_mode':'test_log','key_selection_mode':'simple'}; print(validate_macro_data(data))"
+```
+
+Previsualizar una macro `test_log` con dos acciones y confirmar nombres visibles:
+
+```powershell
+python -c "from app.preview import build_macro_preview; data={'app':'Sistema de Macros de V','version':'1.0','actions':[{'key':'enter','base_delay':1.0,'variation_mode':'fixed'},{'key':'space','base_delay':2.0,'variation_mode':'medium'}],'initial_delay':0.0,'repetitions':1,'infinite':False,'cooldown_base':0.0,'cooldown_variation':'fixed','execution_mode':'test_log','key_selection_mode':'simple'}; preview=build_macro_preview(data); print(preview['actions_count']); print(preview['actions'][0]['key_display_name']); print(preview['actions'][1]['key_display_name'])"
+```
+
+Abrir la UI de Fase 11:
+
+```powershell
+python main.py
+```
+
+Flujo manual recomendado en la UI:
+
+1. Agregar dos o más acciones desde el constructor.
+2. Seleccionar una acción en la lista y confirmar que sus datos aparecen en el editor.
+3. Cambiar tecla, espera o variación y presionar **Actualizar acción**.
+4. Usar **Subir acción** y **Bajar acción** para comprobar que el orden visual cambia y se conserva la selección.
+5. Usar **Limpiar selección** y confirmar que las acciones existentes no se borran.
+6. Guardar, cargar, importar o exportar una macro y confirmar que se respeta el orden actual.
+7. Presionar **Previsualizar** y **Ejecutar prueba solo log** para confirmar que usan las acciones actualizadas/reordenadas.
+8. Usar **Detener ahora** durante una prueba para confirmar que la parada segura sigue operativa.
+
+## Pendiente para Fase 12
+
+Para una fase posterior quedan pendientes, si se aprueban explícitamente, previsualización modal más completa u otros refinamientos visuales. La ejecución real de teclas y `test_keys` deben seguir bloqueados hasta que exista una fase autorizada con controles de seguridad completos.
