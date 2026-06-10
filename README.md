@@ -4,17 +4,18 @@ Sistema de Macros de V será una aplicación de escritorio en Python para constr
 
 ## Alcance actual
 
-El proyecto ya integra las Fases 1 a 8 sobre una base segura y progresiva:
+El proyecto ya integra las Fases 1 a 9 sobre una base segura y progresiva:
 
 - **Fase 4**: almacenamiento, carga, listado, borrado, importación y exportación de macros en JSON.
 - **Fase 5**: previsualización declarativa y estimación de duración antes de ejecutar.
 - **Fase 6**: runner de simulación en modo prueba **solo log**.
 - **Fase 7**: parada de emergencia F9 y control de detención en el runner.
 - **Fase 8**: integración inicial en UI con previsualización, logs visibles y botón **Detener ahora**.
+- **Fase 9**: constructor manual de macros en la UI con acciones editables, configuración básica, previsualización y ejecución `test_log` de la macro editada.
 
 La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración, recorrer una macro validada sin presionar teclas reales y mostrar el flujo desde una UI inicial de CustomTkinter.
 
-Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 8 solo permite ejecutar simulaciones `test_log` desde la UI y el botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
+Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 9 solo permite ejecutar simulaciones `test_log` desde la UI y el botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
 
 ## Lo que esta aplicación no hace
 
@@ -78,7 +79,7 @@ Una acción básica conserva esta estructura:
 }
 ```
 
-La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log; la Fase 7 agrega parada de emergencia; y la Fase 8 integra el flujo básico en la UI.
+La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log; la Fase 7 agrega parada de emergencia; la Fase 8 integra el flujo básico en la UI; y la Fase 9 permite construir macros manualmente desde la interfaz sin habilitar ejecución real.
 
 ## Rutas de usuario
 
@@ -478,6 +479,69 @@ Flujo manual recomendado en la UI:
 4. Confirmar que aparecen eventos como inicio, delay inicial, repetición, acción simulada, cooldown, detención o finalización.
 5. Presionar **Detener ahora** durante una espera para comprobar que la simulación se detiene en un punto seguro.
 
-## Pendiente para Fase 9
+## Fase 9: constructor manual de macros en la UI
 
-La Fase 9 todavía no está implementada. Para esa fase quedan pendientes, si se aprueban explícitamente, mejoras más avanzadas como editor completo de acciones, carga/guardado desde la UI, importación/exportación visual, modal de previsualización más completo o nuevos controles seguros. La ejecución real de teclas y `test_keys` deben seguir bloqueados hasta que exista una fase autorizada con controles de seguridad completos.
+La Fase 9 actualiza `app/ui.py` para que la macro ya no dependa únicamente de la plantilla inicial. La pantalla principal conserva encabezado, paneles visuales, estado claro, previsualización, log con scroll, ejecución no bloqueante y botón **Detener ahora**, pero agrega un constructor manual de acciones y configuración básica.
+
+Características principales:
+
+- Sección **Constructor de macro** con modo de selección de tecla **simple** o **avanzado**.
+- Modo simple usando las opciones visibles generadas por `get_simple_key_options()`.
+- Modo avanzado con entrada manual validada mediante `validate_key()` y normalizada con `normalize_key()`.
+- Botón **Agregar acción** para crear acciones con `key`, `base_delay` y `variation_mode`.
+- Lista visual de acciones con número, tecla legible, espera base y variación.
+- Botón **Eliminar acción** para quitar la acción seleccionada o, si no hay selección válida, la última acción.
+- Botón **Limpiar acciones** con confirmación antes de borrar toda la lista.
+- Configuración editable de `initial_delay`, `repetitions`, `infinite`, `cooldown_base` y `cooldown_variation`.
+- Previsualización con `build_macro_preview()` usando siempre la macro editada desde los controles actuales.
+- Ejecución con `MacroRunner` usando la macro editada y forzando `execution_mode = "test_log"`.
+
+Límites de seguridad de Fase 9:
+
+- No hay ejecución real de teclas.
+- No se puede seleccionar `execution_mode = "real"`.
+- No se puede seleccionar `execution_mode = "test_keys"`.
+- No se implementa guardado visual de macros.
+- No se implementa importación ni exportación visual.
+- No se implementa grabación, captura de teclado para construir acciones, mouse, clicks, movimientos, `recorder.py`, `player.py`, `duration.py`, `storage.py`, `validation.py` ni estructura `src/`.
+
+### Pruebas rápidas de Fase 9 en PowerShell
+
+Compilar módulos de la aplicación:
+
+```powershell
+python -m compileall app
+```
+
+Validar una macro `test_log` mínima construible por la UI:
+
+```powershell
+python -c "from app.validators import validate_macro_data; data={'app':'Sistema de Macros de V','version':'1.0','actions':[{'key':'enter','base_delay':1.0,'variation_mode':'fixed'}],'initial_delay':0.0,'repetitions':1,'infinite':False,'cooldown_base':0.0,'cooldown_variation':'fixed','execution_mode':'test_log','key_selection_mode':'simple'}; print(validate_macro_data(data))"
+```
+
+Previsualizar una macro mínima y comprobar acción/tecla legible:
+
+```powershell
+python -c "from app.preview import build_macro_preview; data={'app':'Sistema de Macros de V','version':'1.0','actions':[{'key':'enter','base_delay':1.0,'variation_mode':'fixed'}],'initial_delay':0.0,'repetitions':1,'infinite':False,'cooldown_base':0.0,'cooldown_variation':'fixed','execution_mode':'test_log','key_selection_mode':'simple'}; preview=build_macro_preview(data); print(preview['actions_count']); print(preview['actions'][0]['key_display_name'])"
+```
+
+Abrir la UI de Fase 9:
+
+```powershell
+python main.py
+```
+
+Flujo manual recomendado en la UI:
+
+1. Elegir modo **Simple** y una tecla visible, o modo **Avanzado** y escribir una tecla soportada.
+2. Configurar espera base y variación de la acción.
+3. Presionar **Agregar acción** y revisar la lista visual.
+4. Probar **Eliminar acción** o **Limpiar acciones** si necesitas ajustar la lista.
+5. Configurar delay inicial, repeticiones, infinito, cooldown base y variación de cooldown.
+6. Presionar **Previsualizar** para revisar la macro editada.
+7. Presionar **Ejecutar prueba solo log** y confirmar eventos en el log visible.
+8. Presionar **Detener ahora** durante una espera para comprobar la detención segura.
+
+## Pendiente para Fase 10
+
+Para una fase posterior quedan pendientes, si se aprueban explícitamente, mejoras como guardado visual de macros, importación/exportación visual, carga desde archivos en la UI, edición más avanzada de acciones existentes o previsualización modal más completa. La ejecución real de teclas y `test_keys` deben seguir bloqueados hasta que exista una fase autorizada con controles de seguridad completos.
