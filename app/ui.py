@@ -1,19 +1,21 @@
 """Interfaz principal de Sistema de Macros de V.
 
-Fase 9 agrega un constructor manual de macros sobre la integración segura de Fase 8.
-La pantalla permite crear acciones de teclado desde controles visuales, editar la
-configuración básica de la macro, previsualizar los datos actuales y ejecutar solo
-una simulación ``test_log``. La UI sigue sin presionar teclas reales y bloquea los
+Fase 10 integra almacenamiento visual sobre el constructor seguro de Fase 9.
+La pantalla permite crear acciones de teclado, guardar/cargar macros JSON,
+importar/exportar archivos, previsualizar los datos actuales y ejecutar solo una
+simulación ``test_log``. La UI sigue sin presionar teclas reales y bloquea los
 modos ``real`` y ``test_keys``.
 """
 
 from __future__ import annotations
 
 import copy
+import json
 import queue
 import threading
+from pathlib import Path
 from typing import Any
-from tkinter import BooleanVar, IntVar, StringVar, messagebox
+from tkinter import BooleanVar, IntVar, StringVar, filedialog, messagebox
 
 import customtkinter as ctk
 
@@ -31,7 +33,15 @@ from app.key_mapper import (
     validate_key,
 )
 from app.macro_runner import MacroRunner, RunnerEvent
-from app.macro_storage import get_default_macro_template
+from app.macro_storage import (
+    delete_macro,
+    export_macro,
+    get_default_macro_template,
+    import_macro,
+    list_saved_macros,
+    load_macro,
+    save_macro,
+)
 from app.preview import build_macro_preview, format_seconds
 from app.validators import validate_macro_data
 
@@ -51,7 +61,7 @@ KEY_SELECTION_MODES = ("simple", "advanced")
 
 
 class MacroApp(ctk.CTk):
-    """Ventana principal de Fase 9 con constructor manual y runner ``test_log``."""
+    """Ventana principal de Fase 10 con macros guardadas y runner ``test_log``."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -80,6 +90,9 @@ class MacroApp(ctk.CTk):
             value=VARIATION_LABELS_BY_VALUE[self.current_macro["cooldown_variation"]]
         )
         self.selected_action_index_var = IntVar(value=0)
+        self.macro_name_var = StringVar(value="macro_prueba")
+        self.saved_macro_var = StringVar(value="Sin macros guardadas")
+        self.saved_macros: list[dict[str, str]] = []
 
         self.status_label: ctk.CTkLabel
         self.preview_textbox: ctk.CTkTextbox
@@ -91,6 +104,13 @@ class MacroApp(ctk.CTk):
         self.add_action_button: ctk.CTkButton
         self.delete_action_button: ctk.CTkButton
         self.clear_actions_button: ctk.CTkButton
+        self.save_macro_button: ctk.CTkButton
+        self.refresh_macros_button: ctk.CTkButton
+        self.load_macro_button: ctk.CTkButton
+        self.delete_macro_button: ctk.CTkButton
+        self.import_json_button: ctk.CTkButton
+        self.export_json_button: ctk.CTkButton
+        self.saved_macros_menu: ctk.CTkOptionMenu
         self.simple_key_menu: ctk.CTkOptionMenu
         self.advanced_key_entry: ctk.CTkEntry
         self.actions_list_frame: ctk.CTkScrollableFrame
@@ -99,8 +119,9 @@ class MacroApp(ctk.CTk):
         self._build_layout()
         self._sync_key_input_state()
         self._render_actions_list()
+        self._refresh_saved_macros(log_result=False)
         self._append_log_line(
-            "UI lista. Construye acciones manuales, previsualiza o ejecuta una prueba solo log."
+            "UI lista. Construye acciones manuales, guarda/carga macros o ejecuta una prueba solo log."
         )
         self._render_preview()
         self.after(LOG_POLL_INTERVAL_MS, self._poll_runner_events)
@@ -136,7 +157,7 @@ class MacroApp(ctk.CTk):
         subtitle = ctk.CTkLabel(
             header,
             text=(
-                "Fase 9: constructor manual de macros con previsualización y ejecución segura "
+                "Fase 10: macros guardadas, importación/exportación JSON y ejecución segura "
                 "solo en modo test_log. No se presionan teclas reales."
             ),
             anchor="w",
@@ -164,7 +185,7 @@ class MacroApp(ctk.CTk):
 
         self.status_label = ctk.CTkLabel(
             status_panel,
-            text="Estado: constructor manual listo en modo test_log",
+            text="Estado: constructor y macros guardadas listos en modo test_log",
             fg_color=("#dbeafe", "#1e3a8a"),
             corner_radius=8,
             padx=14,
@@ -199,7 +220,8 @@ class MacroApp(ctk.CTk):
         self._build_action_editor(builder_panel, row=1)
         self._build_actions_list(builder_panel, row=2)
         self._build_macro_config(builder_panel, row=3)
-        self._build_execution_controls(builder_panel, row=4)
+        self._build_saved_macros_panel(builder_panel, row=4)
+        self._build_execution_controls(builder_panel, row=5)
 
     def _build_action_editor(self, parent: ctk.CTkFrame, row: int) -> None:
         """Crea controles para agregar una acción manualmente."""
@@ -356,6 +378,79 @@ class MacroApp(ctk.CTk):
             variable=self.cooldown_variation_var,
         ).grid(row=5, column=1, sticky="ew", padx=12, pady=(4, 12))
 
+    def _build_saved_macros_panel(self, parent: ctk.CTkFrame, row: int) -> None:
+        """Crea la sección visual de Fase 10 para guardar, cargar e intercambiar JSON."""
+        storage = ctk.CTkFrame(parent)
+        storage.grid(row=row, column=0, sticky="ew", padx=14, pady=(0, 10))
+        storage.grid_columnconfigure(0, weight=1)
+        storage.grid_columnconfigure(1, weight=1)
+
+        title = ctk.CTkLabel(storage, text="Macros guardadas", font=ctk.CTkFont(weight="bold"), anchor="w")
+        title.grid(row=0, column=0, columnspan=2, sticky="ew", padx=12, pady=(12, 6))
+
+        ctk.CTkLabel(storage, text="Nombre de macro", anchor="w").grid(
+            row=1, column=0, sticky="w", padx=12, pady=4
+        )
+        ctk.CTkEntry(
+            storage,
+            textvariable=self.macro_name_var,
+            placeholder_text="Ej.: macro_prueba",
+        ).grid(row=1, column=1, sticky="ew", padx=12, pady=4)
+
+        self.save_macro_button = ctk.CTkButton(
+            storage,
+            text="Guardar macro",
+            command=self._save_current_macro,
+        )
+        self.save_macro_button.grid(row=2, column=0, sticky="ew", padx=12, pady=4)
+
+        self.refresh_macros_button = ctk.CTkButton(
+            storage,
+            text="Actualizar lista",
+            command=self._refresh_saved_macros,
+        )
+        self.refresh_macros_button.grid(row=2, column=1, sticky="ew", padx=12, pady=4)
+
+        ctk.CTkLabel(storage, text="Macro guardada", anchor="w").grid(
+            row=3, column=0, sticky="w", padx=12, pady=4
+        )
+        self.saved_macros_menu = ctk.CTkOptionMenu(
+            storage,
+            values=[self.saved_macro_var.get()],
+            variable=self.saved_macro_var,
+        )
+        self.saved_macros_menu.grid(row=3, column=1, sticky="ew", padx=12, pady=4)
+
+        self.load_macro_button = ctk.CTkButton(
+            storage,
+            text="Cargar macro",
+            command=self._load_selected_saved_macro,
+        )
+        self.load_macro_button.grid(row=4, column=0, sticky="ew", padx=12, pady=4)
+
+        self.delete_macro_button = ctk.CTkButton(
+            storage,
+            text="Eliminar macro",
+            command=self._delete_selected_saved_macro,
+            fg_color=("#92400e", "#78350f"),
+            hover_color=("#78350f", "#451a03"),
+        )
+        self.delete_macro_button.grid(row=4, column=1, sticky="ew", padx=12, pady=4)
+
+        self.import_json_button = ctk.CTkButton(
+            storage,
+            text="Importar JSON",
+            command=self._import_json_macro,
+        )
+        self.import_json_button.grid(row=5, column=0, sticky="ew", padx=12, pady=(4, 12))
+
+        self.export_json_button = ctk.CTkButton(
+            storage,
+            text="Exportar JSON",
+            command=self._export_json_macro,
+        )
+        self.export_json_button.grid(row=5, column=1, sticky="ew", padx=12, pady=(4, 12))
+
     def _build_execution_controls(self, parent: ctk.CTkFrame, row: int) -> None:
         """Crea botones de plantilla, previsualización, ejecución y detención."""
         controls = ctk.CTkFrame(parent)
@@ -466,6 +561,270 @@ class MacroApp(ctk.CTk):
         if hasattr(self, "advanced_key_entry"):
             self.advanced_key_entry.configure(state=advanced_state)
 
+    def _save_current_macro(self) -> None:
+        """Guarda la macro editada en la carpeta segura de macros de usuario."""
+        if self._is_runner_active():
+            self._show_error("No se puede guardar mientras la prueba está activa.")
+            return
+
+        macro_name = self._get_macro_name_from_entry()
+        if macro_name is None:
+            self._show_error("El nombre de macro no puede estar vacío.")
+            return
+
+        try:
+            safe_macro = self._build_validated_macro_from_controls()
+            saved_path = save_macro(safe_macro, macro_name)
+        except (OSError, ValueError) as error:
+            self._show_error(f"No se pudo guardar la macro: {error}")
+            return
+
+        self.current_macro = safe_macro
+        self._refresh_saved_macros(selected_name=saved_path.stem, log_result=False)
+        self._append_log_line(f"Macro guardada correctamente: {saved_path.name}.")
+        self._set_status("Estado: macro guardada en modo test_log")
+
+    def _refresh_saved_macros(
+        self,
+        selected_name: str | None = None,
+        log_result: bool = True,
+    ) -> None:
+        """Actualiza el selector visual usando ``list_saved_macros()``."""
+        try:
+            self.saved_macros = self._get_saved_macro_infos()
+        except OSError as error:
+            self._show_error(f"No se pudo actualizar la lista de macros: {error}")
+            return
+
+        option_names = [macro_info["name"] for macro_info in self.saved_macros]
+        if not option_names:
+            option_names = ["Sin macros guardadas"]
+            self.saved_macro_var.set(option_names[0])
+        elif selected_name in option_names:
+            self.saved_macro_var.set(str(selected_name))
+        elif self.saved_macro_var.get() not in option_names:
+            self.saved_macro_var.set(option_names[0])
+
+        if hasattr(self, "saved_macros_menu"):
+            self.saved_macros_menu.configure(values=option_names)
+
+        self._sync_saved_macro_buttons_state()
+        if log_result:
+            self._append_log_line(f"Lista de macros actualizada: {len(self.saved_macros)} archivo(s).")
+
+    def _load_selected_saved_macro(self) -> None:
+        """Carga una macro guardada al constructor visual y fuerza modo seguro."""
+        if self._is_runner_active():
+            self._show_error("No se puede cargar una macro mientras la prueba está activa.")
+            return
+
+        macro_info = self._get_selected_saved_macro_info()
+        if macro_info is None:
+            self._show_error("Selecciona una macro guardada para cargar.")
+            return
+
+        try:
+            loaded_macro = load_macro(macro_info["file_name"])
+            safe_macro = self._force_loaded_macro_to_test_log(loaded_macro, source_label=macro_info["file_name"])
+        except (OSError, ValueError) as error:
+            self._show_error(f"No se pudo cargar la macro: {error}")
+            return
+
+        self.current_macro = safe_macro
+        self.macro_name_var.set(macro_info["name"])
+        self._load_macro_into_controls(safe_macro)
+        self._render_actions_list()
+        self._render_preview()
+        self._append_log_line(f"Macro cargada en el constructor: {macro_info['file_name']}.")
+        self._set_status("Estado: macro cargada en modo test_log")
+
+    def _delete_selected_saved_macro(self) -> None:
+        """Elimina la macro seleccionada tras confirmación explícita."""
+        if self._is_runner_active():
+            self._show_error("No se puede eliminar una macro mientras la prueba está activa.")
+            return
+
+        macro_info = self._get_selected_saved_macro_info()
+        if macro_info is None:
+            self._show_error("Selecciona una macro guardada para eliminar.")
+            return
+
+        confirmed = messagebox.askyesno(
+            "Eliminar macro",
+            f"¿Quieres eliminar la macro guardada '{macro_info['file_name']}'?",
+        )
+        if not confirmed:
+            self._append_log_line("Eliminación de macro cancelada por el usuario.")
+            return
+
+        try:
+            delete_macro(macro_info["file_name"])
+        except (OSError, ValueError) as error:
+            self._show_error(f"No se pudo eliminar la macro: {error}")
+            return
+
+        self._refresh_saved_macros(log_result=False)
+        self._append_log_line(f"Macro eliminada: {macro_info['file_name']}.")
+        self._set_status("Estado: macro eliminada")
+
+    def _import_json_macro(self) -> None:
+        """Importa un JSON externo, actualiza la lista y carga la macro de forma segura."""
+        if self._is_runner_active():
+            self._show_error("No se puede importar una macro mientras la prueba está activa.")
+            return
+
+        source_path = filedialog.askopenfilename(
+            title="Importar macro JSON",
+            filetypes=(("Archivos JSON", "*.json"), ("Todos los archivos", "*.*")),
+        )
+        if not source_path:
+            self._append_log_line("Importación JSON cancelada por el usuario.")
+            return
+
+        try:
+            imported_path = import_macro(source_path)
+        except (OSError, ValueError) as error:
+            self._show_error(f"No se pudo importar el JSON: {error}")
+            return
+
+        self._refresh_saved_macros(selected_name=imported_path.stem, log_result=False)
+        self._append_log_line(f"Macro importada: {imported_path.name}.")
+        self._load_imported_macro_into_constructor(imported_path)
+
+    def _export_json_macro(self) -> None:
+        """Exporta la macro seleccionada o, si no hay selección, la macro actual validada."""
+        if self._is_runner_active():
+            self._show_error("No se puede exportar una macro mientras la prueba está activa.")
+            return
+
+        macro_info = self._get_selected_saved_macro_info()
+        default_name = macro_info["file_name"] if macro_info else f"{self._get_default_export_name()}.json"
+        destination_path = filedialog.asksaveasfilename(
+            title="Exportar macro JSON",
+            defaultextension=".json",
+            initialfile=default_name,
+            filetypes=(("Archivos JSON", "*.json"), ("Todos los archivos", "*.*")),
+        )
+        if not destination_path:
+            self._append_log_line("Exportación JSON cancelada por el usuario.")
+            return
+
+        try:
+            if macro_info is not None:
+                exported_path = export_macro(macro_info["file_name"], destination_path)
+                self._append_log_line(
+                    f"Macro guardada exportada: {macro_info['file_name']} -> {exported_path}."
+                )
+            else:
+                exported_path = self._export_current_macro_to_json(destination_path)
+                self._append_log_line(f"Macro actual exportada en modo test_log: {exported_path}.")
+        except (OSError, ValueError) as error:
+            self._show_error(f"No se pudo exportar el JSON: {error}")
+            return
+
+        self._set_status("Estado: macro exportada a JSON")
+
+    def _load_imported_macro_into_constructor(self, imported_path: Path) -> None:
+        """Carga en pantalla el JSON recién importado, siempre forzando ``test_log``."""
+        try:
+            loaded_macro = load_macro(imported_path.name)
+            safe_macro = self._force_loaded_macro_to_test_log(loaded_macro, source_label=imported_path.name)
+        except (OSError, ValueError) as error:
+            self._show_error(f"La macro se importó, pero no se pudo cargar en la UI: {error}")
+            return
+
+        self.current_macro = safe_macro
+        self.macro_name_var.set(imported_path.stem)
+        self._load_macro_into_controls(safe_macro)
+        self._render_actions_list()
+        self._render_preview()
+        self._append_log_line(f"Macro importada cargada en el constructor: {imported_path.name}.")
+        self._set_status("Estado: macro importada en modo test_log")
+
+    def _export_current_macro_to_json(self, destination_path: str) -> Path:
+        """Escribe la macro actual validada en un JSON externo sin crear una macro interna."""
+        safe_macro = self._build_validated_macro_from_controls()
+        destination = Path(destination_path).expanduser()
+        if destination.suffix.lower() != ".json":
+            destination = destination.with_suffix(".json")
+
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        with destination.open("w", encoding="utf-8") as macro_file:
+            json.dump(safe_macro, macro_file, ensure_ascii=False, indent=2)
+            macro_file.write("\n")
+
+        self.current_macro = safe_macro
+        return destination.resolve()
+
+    def _force_loaded_macro_to_test_log(self, macro_data: dict[str, Any], source_label: str) -> dict[str, Any]:
+        """Convierte macros cargadas/importadas a ``test_log`` antes de usarlas en UI."""
+        macro_copy = copy.deepcopy(macro_data)
+        original_mode = macro_copy.get("execution_mode")
+        if original_mode != ALLOWED_UI_EXECUTION_MODE:
+            self._append_log_line(
+                f"Modo seguro aplicado a {source_label}: execution_mode {original_mode!r} -> 'test_log'."
+            )
+
+        macro_copy["execution_mode"] = ALLOWED_UI_EXECUTION_MODE
+        key_selection_mode = macro_copy.get("key_selection_mode")
+        if key_selection_mode not in KEY_SELECTION_MODES:
+            macro_copy["key_selection_mode"] = "simple"
+            self._append_log_line(
+                f"Modo de selección inválido en {source_label}; se usó 'simple'."
+            )
+
+        if not validate_macro_data(macro_copy):
+            raise ValueError("La macro cargada no cumple la estructura válida para Fase 10")
+
+        return macro_copy
+
+    def _get_macro_name_from_entry(self) -> str | None:
+        """Lee el nombre escrito por el usuario y rechaza valores vacíos."""
+        macro_name = self.macro_name_var.get().strip()
+        if not macro_name:
+            return None
+        return macro_name
+
+    def _get_saved_macro_infos(self) -> list[dict[str, str]]:
+        """Normaliza la salida de ``list_saved_macros()`` para el selector visual."""
+        macro_infos: list[dict[str, str]] = []
+        for item in list_saved_macros():
+            if isinstance(item, dict):
+                name = str(item["name"])
+                file_name = str(item.get("file_name", f"{name}.json"))
+                item_path = str(item.get("path", get_macros_dir() / file_name))
+            else:
+                item_path_object = Path(item)
+                name = item_path_object.stem
+                file_name = item_path_object.name
+                item_path = str(item_path_object)
+
+            macro_infos.append({"name": name, "file_name": file_name, "path": item_path})
+
+        return macro_infos
+
+    def _get_selected_saved_macro_info(self) -> dict[str, str] | None:
+        """Devuelve la macro seleccionada o ``None`` si la lista está vacía."""
+        selected_name = self.saved_macro_var.get()
+        for macro_info in self.saved_macros:
+            if macro_info["name"] == selected_name:
+                return macro_info
+        return None
+
+    def _sync_saved_macro_buttons_state(self) -> None:
+        """Habilita carga/borrado solo cuando existe una macro seleccionable."""
+        has_saved_macros = bool(self.saved_macros)
+        load_delete_state = "normal" if has_saved_macros and not self._is_runner_active() else "disabled"
+        if hasattr(self, "load_macro_button"):
+            self.load_macro_button.configure(state=load_delete_state)
+        if hasattr(self, "delete_macro_button"):
+            self.delete_macro_button.configure(state=load_delete_state)
+
+    def _get_default_export_name(self) -> str:
+        """Propone un nombre estable para exportar la macro actual."""
+        macro_name = self._get_macro_name_from_entry()
+        return macro_name or "macro_actual_test_log"
+
     def _load_template(self) -> None:
         """Carga una plantilla limpia en controles editables y actualiza la vista."""
         if self._is_runner_active():
@@ -480,7 +839,7 @@ class MacroApp(ctk.CTk):
         self._render_preview()
 
     def _load_macro_into_controls(self, macro_data: dict[str, Any]) -> None:
-        """Copia una macro validada o plantilla hacia los controles de Fase 9."""
+        """Copia una macro validada o plantilla hacia los controles de Fase 10."""
         self.actions = copy.deepcopy(macro_data.get("actions", []))
         self.key_selection_mode_var.set(macro_data.get("key_selection_mode", "simple"))
         self.initial_delay_var.set(str(float(macro_data.get("initial_delay", 0.0))))
@@ -650,13 +1009,13 @@ class MacroApp(ctk.CTk):
         return self._get_safe_test_log_macro(macro_data)
 
     def _get_safe_test_log_macro(self, macro_data: dict[str, Any]) -> dict[str, Any]:
-        """Bloquea modos peligrosos y valida la macro construida para Fase 9."""
+        """Bloquea modos peligrosos y valida la macro construida para Fase 10."""
         macro_copy = copy.deepcopy(macro_data)
         execution_mode = macro_copy.get("execution_mode")
 
         if execution_mode in BLOCKED_EXECUTION_MODES:
             raise ValueError(
-                f"El modo {execution_mode!r} sigue bloqueado en Fase 9. Solo se permite 'test_log'."
+                f"El modo {execution_mode!r} sigue bloqueado en Fase 10. Solo se permite 'test_log'."
             )
 
         macro_copy["execution_mode"] = ALLOWED_UI_EXECUTION_MODE
@@ -774,7 +1133,7 @@ class MacroApp(ctk.CTk):
         try:
             safe_macro = self._build_validated_macro_from_controls()
             if safe_macro.get("execution_mode") != ALLOWED_UI_EXECUTION_MODE:
-                raise ValueError("La Fase 9 solo permite execution_mode='test_log'.")
+                raise ValueError("La Fase 10 solo permite execution_mode='test_log'.")
         except ValueError as error:
             self._show_error(f"No se puede ejecutar la macro: {error}")
             return
@@ -894,11 +1253,20 @@ class MacroApp(ctk.CTk):
         self.add_action_button.configure(state=state)
         self.delete_action_button.configure(state=state if self.actions else "disabled")
         self.clear_actions_button.configure(state=state if self.actions else "disabled")
+        self.save_macro_button.configure(state=state)
+        self.refresh_macros_button.configure(state=state)
+        self.import_json_button.configure(state=state)
+        self.export_json_button.configure(state=state)
         self.stop_button.configure(state="normal" if is_running else "disabled")
 
         if is_running:
+            self.load_macro_button.configure(state="disabled")
+            self.delete_macro_button.configure(state="disabled")
+            self.saved_macros_menu.configure(state="disabled")
             self._set_status("Estado: prueba test_log en ejecución")
         else:
+            self.saved_macros_menu.configure(state="normal")
+            self._sync_saved_macro_buttons_state()
             self._sync_key_input_state()
 
     def _is_runner_active(self) -> bool:

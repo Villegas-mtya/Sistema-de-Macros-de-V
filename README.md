@@ -4,7 +4,7 @@ Sistema de Macros de V será una aplicación de escritorio en Python para constr
 
 ## Alcance actual
 
-El proyecto ya integra las Fases 1 a 9 sobre una base segura y progresiva:
+El proyecto ya integra las Fases 1 a 10 sobre una base segura y progresiva:
 
 - **Fase 4**: almacenamiento, carga, listado, borrado, importación y exportación de macros en JSON.
 - **Fase 5**: previsualización declarativa y estimación de duración antes de ejecutar.
@@ -12,10 +12,11 @@ El proyecto ya integra las Fases 1 a 9 sobre una base segura y progresiva:
 - **Fase 7**: parada de emergencia F9 y control de detención en el runner.
 - **Fase 8**: integración inicial en UI con previsualización, logs visibles y botón **Detener ahora**.
 - **Fase 9**: constructor manual de macros en la UI con acciones editables, configuración básica, previsualización y ejecución `test_log` de la macro editada.
+- **Fase 10**: guardado visual, carga visual, eliminación, importación JSON y exportación JSON de macros desde la UI.
 
 La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración, recorrer una macro validada sin presionar teclas reales y mostrar el flujo desde una UI inicial de CustomTkinter.
 
-Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 9 solo permite ejecutar simulaciones `test_log` desde la UI y el botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
+Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 10 solo permite ejecutar simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
 
 ## Lo que esta aplicación no hace
 
@@ -79,7 +80,7 @@ Una acción básica conserva esta estructura:
 }
 ```
 
-La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log; la Fase 7 agrega parada de emergencia; la Fase 8 integra el flujo básico en la UI; y la Fase 9 permite construir macros manualmente desde la interfaz sin habilitar ejecución real.
+La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log; la Fase 7 agrega parada de emergencia; la Fase 8 integra el flujo básico en la UI; la Fase 9 permite construir macros manualmente desde la interfaz; y la Fase 10 agrega guardado, carga, importación y exportación visual sin habilitar ejecución real.
 
 ## Rutas de usuario
 
@@ -250,7 +251,7 @@ Campos validados:
 - `get_default_macro_template()`: devuelve una plantilla nueva y validable.
 - `save_macro(macro_data, file_name)`: valida y guarda en `APPDATA/SistemaMacrosV/macros` con extensión `.json`.
 - `load_macro(file_name)`: carga y valida una macro interna.
-- `list_saved_macros()`: devuelve una lista ordenada de rutas `Path` a macros `.json` internas.
+- `list_saved_macros()`: devuelve una lista ordenada de metadatos de macros internas (`name`, `file_name` y `path`).
 - `delete_macro(file_name)`: elimina solo macros `.json` internas.
 - `import_macro(source_path)`: importa un `.json` externo validado y evita sobrescrituras con nombres únicos.
 - `export_macro(file_name, destination_path)`: exporta una macro interna validada a una carpeta o archivo externo.
@@ -542,6 +543,67 @@ Flujo manual recomendado en la UI:
 7. Presionar **Ejecutar prueba solo log** y confirmar eventos en el log visible.
 8. Presionar **Detener ahora** durante una espera para comprobar la detención segura.
 
-## Pendiente para Fase 10
+## Fase 10: guardado visual e importación/exportación JSON
 
-Para una fase posterior quedan pendientes, si se aprueban explícitamente, mejoras como guardado visual de macros, importación/exportación visual, carga desde archivos en la UI, edición más avanzada de acciones existentes o previsualización modal más completa. La ejecución real de teclas y `test_keys` deben seguir bloqueados hasta que exista una fase autorizada con controles de seguridad completos.
+La Fase 10 actualiza `app/ui.py` para integrar visualmente las funciones de `app/macro_storage.py` con el constructor manual de Fase 9. La pantalla sigue conservando encabezado, constructor de acciones, lista visual, configuración de macro, previsualización, log con scroll, ejecución no bloqueante `test_log` y botón **Detener ahora**.
+
+Características principales:
+
+- Nueva sección **Macros guardadas** dentro de la UI.
+- Campo **Nombre de macro** para guardar la macro construida desde los controles actuales.
+- Botón **Guardar macro** que construye la macro actual, fuerza `execution_mode = "test_log"`, valida con `validate_macro_data()` y guarda con `save_macro()`.
+- Botón **Actualizar lista** que refresca el selector usando `list_saved_macros()`.
+- Selector visual de macros guardadas.
+- Botón **Cargar macro** que usa `load_macro()`, carga acciones/configuración al constructor y actualiza la previsualización.
+- Botón **Eliminar macro** con confirmación y borrado mediante `delete_macro()`.
+- Botón **Importar JSON** que abre un selector de archivos `.json`, usa `import_macro()`, actualiza la lista y carga la macro importada al constructor.
+- Botón **Exportar JSON** que permite exportar una macro guardada con `export_macro()` o, si no hay selección, exportar la macro actual validada a un archivo JSON externo.
+
+Límites de seguridad de Fase 10:
+
+- Toda macro construida desde la UI usa siempre `execution_mode = "test_log"`.
+- Toda macro cargada o importada con `execution_mode = "real"` o `execution_mode = "test_keys"` se convierte en la UI a `execution_mode = "test_log"` y se registra en el log visible.
+- No hay ejecución real de teclas.
+- Los modos `real` y `test_keys` siguen bloqueados.
+- No se implementa grabación, captura de teclado para construir acciones, mouse, clicks, movimientos, `recorder.py`, `player.py`, `duration.py`, `storage.py`, `validation.py` ni estructura `src/`.
+
+### Pruebas rápidas de Fase 10 en PowerShell
+
+Compilar módulos de la aplicación:
+
+```powershell
+python -m compileall app
+```
+
+Guardar, cargar, listar y eliminar una macro interna:
+
+```powershell
+python -c "from app.macro_storage import save_macro, load_macro, list_saved_macros, delete_macro; data={'app':'Sistema de Macros de V','version':'1.0','actions':[{'key':'enter','base_delay':1.0,'variation_mode':'fixed'}],'initial_delay':0.0,'repetitions':1,'infinite':False,'cooldown_base':0.0,'cooldown_variation':'fixed','execution_mode':'test_log','key_selection_mode':'simple'}; path=save_macro(data,'prueba_fase_10'); loaded=load_macro('prueba_fase_10'); print(loaded['execution_mode']); print(any(m['name']=='prueba_fase_10' for m in list_saved_macros())); print(delete_macro('prueba_fase_10'))"
+```
+
+Exportar una macro guardada a un JSON temporal:
+
+```powershell
+python -c "from pathlib import Path; import tempfile; from app.macro_storage import save_macro, export_macro, delete_macro; data={'app':'Sistema de Macros de V','version':'1.0','actions':[{'key':'enter','base_delay':1.0,'variation_mode':'fixed'}],'initial_delay':0.0,'repetitions':1,'infinite':False,'cooldown_base':0.0,'cooldown_variation':'fixed','execution_mode':'test_log','key_selection_mode':'simple'}; save_macro(data,'prueba_export_fase_10'); dest=Path(tempfile.gettempdir())/'prueba_export_fase_10.json'; export_macro('prueba_export_fase_10', dest); print(dest.exists()); print(delete_macro('prueba_export_fase_10')); dest.unlink(missing_ok=True)"
+```
+
+Abrir la UI de Fase 10:
+
+```powershell
+python main.py
+```
+
+Flujo manual recomendado en la UI:
+
+1. Crear o ajustar acciones desde el constructor manual.
+2. Escribir un **Nombre de macro** no vacío.
+3. Presionar **Guardar macro** y comprobar el mensaje en el log visible.
+4. Presionar **Actualizar lista** si quieres refrescar el selector manualmente.
+5. Seleccionar una macro y presionar **Cargar macro** para llevarla al constructor.
+6. Probar **Importar JSON** con un archivo válido y confirmar que queda cargado en modo `test_log`.
+7. Probar **Exportar JSON** con una macro seleccionada o, si no hay macros guardadas, con la macro actual.
+8. Presionar **Ejecutar prueba solo log** y **Detener ahora** para confirmar que la ejecución segura sigue funcionando.
+
+## Pendiente para Fase 11
+
+Para una fase posterior quedan pendientes, si se aprueban explícitamente, edición avanzada de acciones existentes, previsualización modal más completa u otros refinamientos visuales. La ejecución real de teclas y `test_keys` deben seguir bloqueados hasta que exista una fase autorizada con controles de seguridad completos.
