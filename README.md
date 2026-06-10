@@ -4,7 +4,7 @@ Sistema de Macros de V será una aplicación de escritorio en Python para constr
 
 ## Alcance actual
 
-El proyecto ya integra las Fases 1 a 11 sobre una base segura y progresiva:
+El proyecto ya integra las Fases 1 a 12 sobre una base segura y progresiva:
 
 - **Fase 4**: almacenamiento, carga, listado, borrado, importación y exportación de macros en JSON.
 - **Fase 5**: previsualización declarativa y estimación de duración antes de ejecutar.
@@ -14,10 +14,11 @@ El proyecto ya integra las Fases 1 a 11 sobre una base segura y progresiva:
 - **Fase 9**: constructor manual de macros en la UI con acciones configurables, configuración básica, previsualización y ejecución `test_log` de la macro editada.
 - **Fase 10**: guardado visual, carga visual, eliminación, importación JSON y exportación JSON de macros desde la UI.
 - **Fase 11**: edición de acciones existentes, limpieza de selección y reordenamiento visual de acciones sin salir del modo seguro `test_log`.
+- **Fase 12**: empaquetado preliminar seguro con PyInstaller para generar un ejecutable Windows sin habilitar ejecución real.
 
 La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración, recorrer una macro validada sin presionar teclas reales y mostrar el flujo desde una UI inicial de CustomTkinter.
 
-Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 11 solo permite ejecutar simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
+Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 12 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
 
 ## Lo que esta aplicación no hace
 
@@ -81,7 +82,7 @@ Una acción básica conserva esta estructura:
 }
 ```
 
-La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log; la Fase 7 agrega parada de emergencia; la Fase 8 integra el flujo básico en la UI; la Fase 9 permite construir macros manualmente desde la interfaz; la Fase 10 agrega guardado, carga, importación y exportación visual; y la Fase 11 agrega edición y reordenamiento de acciones existentes sin habilitar ejecución real.
+La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log; la Fase 7 agrega parada de emergencia; la Fase 8 integra el flujo básico en la UI; la Fase 9 permite construir macros manualmente desde la interfaz; la Fase 10 agrega guardado, carga, importación y exportación visual; la Fase 11 agrega edición y reordenamiento de acciones existentes sin habilitar ejecución real; y la Fase 12 prepara el empaquetado seguro con PyInstaller.
 
 ## Rutas de usuario
 
@@ -180,13 +181,80 @@ Puedes colocar un archivo llamado `app_icon.ico` dentro de la carpeta `assets/`.
 
 El proyecto funciona aunque ese ícono no exista.
 
-## Build inicial
+## Fase 12: empaquetado preliminar seguro con PyInstaller
+
+La Fase 12 prepara un ejecutable Windows funcional en modo seguro. No habilita ejecución real, `test_keys`, grabación, mouse, clicks ni movimientos. El ejecutable mantiene el mismo comportamiento de la app Python: solo puede ejecutar simulaciones `test_log` y fuerza las macros cargadas o importadas a `execution_mode = "test_log"`.
+
+### Instalar dependencias
+
+Desde PowerShell o CMD, en la raíz del proyecto:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+Las dependencias mínimas son:
+
+- `customtkinter`
+- `pynput`
+- `pyinstaller`
+
+### Ejecutar la app en modo Python
+
+```powershell
+python main.py
+```
+
+### Generar el ejecutable
+
+```powershell
+.\build.bat
+```
+
+También puede ejecutarse desde CMD:
 
 ```bat
 build.bat
 ```
 
-El build inicial usa PyInstaller en modo `--onedir` y no falla si `assets/app_icon.ico` no existe.
+`build.bat` usa PyInstaller con `--onedir`, `--windowed`, `--noconfirm`, `--clean`, recursos `assets` y `examples`, y datos de `customtkinter`. Si existe `assets\app_icon.ico`, lo usa como icono; si no existe, construye sin icono y no falla por esa ausencia.
+
+El ejecutable esperado queda en:
+
+```text
+dist\Sistema de Macros de V\Sistema de Macros de V.exe
+```
+
+### Verificaciones simples en PowerShell
+
+```powershell
+python -m compileall app
+```
+
+```powershell
+python -c "import customtkinter, pynput, PyInstaller; print('dependencias OK')"
+```
+
+```powershell
+.\build.bat
+```
+
+Después del build, verificar manualmente:
+
+```powershell
+Test-Path "dist\Sistema de Macros de V\Sistema de Macros de V.exe"
+```
+
+El resultado esperado es `True`.
+
+### Seguridad del ejecutable de Fase 12
+
+- El `.exe` sigue funcionando solo en modo `test_log`.
+- `execution_mode = "real"` y `execution_mode = "test_keys"` siguen bloqueados desde la UI.
+- No se presionan teclas reales todavía.
+- No hay grabación de macros.
+- No hay captura de mouse, clicks ni movimientos.
+- Fase 12 es solo empaquetado preliminar; la Fase 13 queda pendiente para una etapa posterior.
 
 ## Fase 4: almacenamiento JSON de macros
 
