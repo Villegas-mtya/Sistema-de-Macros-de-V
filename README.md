@@ -394,7 +394,8 @@ Características principales:
 - La única escucha global permitida en esta fase es `F9`; cualquier otra tecla se ignora sin guardarse, sin registrarse y sin usarse para acciones.
 - F9 solo detiene una simulación en curso: no graba teclas, no captura acciones, no registra pulsaciones y no habilita hotkeys configurables.
 - Los delays se revisan en intervalos cortos para detectar `stop()`, parada de emergencia o F9 sin esperar el delay completo.
-- La Fase 7 no implementa todavía botón visual **Detener ahora**, integración con `app/ui.py`, modal gráfico, ejecución real, `test_keys`, mouse, clicks ni grabación de macros.
+- Pendiente para fases futuras: botón visual **Detener ahora**, integración con `app/ui.py`, modal gráfico, `test_keys` solo si se autoriza después y ejecución real solo después de controles de seguridad completos.
+- Fuera del alcance del proyecto: grabación de macros, captura de teclado para construir acciones, mouse, clicks y movimientos.
 
 Eventos relevantes:
 
