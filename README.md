@@ -4,7 +4,7 @@ Sistema de Macros de V será una aplicación de escritorio en Python para constr
 
 ## Alcance actual
 
-El proyecto ya integra las Fases 1 a 14 sobre una base segura y progresiva:
+El proyecto ya integra las Fases 1 a 15 sobre una base segura y progresiva:
 
 - **Fase 4**: almacenamiento, carga, listado, borrado, importación y exportación de macros en JSON.
 - **Fase 5**: previsualización declarativa y estimación de duración antes de ejecutar.
@@ -17,10 +17,11 @@ El proyecto ya integra las Fases 1 a 14 sobre una base segura y progresiva:
 - **Fase 12**: empaquetado preliminar seguro con PyInstaller para generar un ejecutable Windows sin habilitar ejecución real.
 - **Fase 13**: pruebas automatizadas de regresión y seguridad con `unittest`, sin abrir UI ni presionar teclas reales.
 - **Fase 14**: CI de regresión y seguridad con GitHub Actions en Windows, sin ejecutar la UI ni el `.exe`.
+- **Fase 15**: preparación de release candidate seguro, documentación final de uso y checklist manual de QA sin cambiar el comportamiento funcional.
 
 La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración, recorrer una macro validada sin presionar teclas reales y mostrar el flujo desde una UI inicial de CustomTkinter.
 
-Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 14 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
+Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 15 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
 
 ## Lo que esta aplicación no hace
 
@@ -46,6 +47,99 @@ pip install -r requirements.txt
 ```bash
 python main.py
 ```
+
+## Guía rápida de uso seguro
+
+Esta guía resume el flujo recomendado para usar y revisar la aplicación en la release candidate de Fase 15. No cambia el comportamiento funcional: la app continúa limitada a `execution_mode = "test_log"`, sin ejecución real de teclas, sin `test_keys`, sin grabación, sin mouse, sin clicks y sin movimientos.
+
+### Instalación de dependencias
+
+Desde PowerShell, en la raíz del proyecto:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+### Ejecutar la aplicación en modo Python
+
+```powershell
+python main.py
+```
+
+Al abrir la ventana, revisa el constructor manual, la lista de acciones, la previsualización y el panel de logs. Cierra la ventana normalmente al terminar la revisión manual.
+
+### Flujo de uso de la app
+
+1. Elegir el modo de selección de tecla: simple o avanzado.
+2. Crear acciones manuales indicando tecla, delay base y variación.
+3. Editar, duplicar, eliminar o reordenar acciones desde la lista visual.
+4. Configurar delay inicial, repeticiones, repetición infinita opcional, cooldown base y variación de cooldown.
+5. Usar **Previsualizar** para revisar la macro y la duración estimada antes de ejecutar.
+6. Usar **Guardar macro** para persistir la macro en JSON dentro de la carpeta de usuario.
+7. Usar **Cargar**, **Eliminar**, **Importar JSON** o **Exportar JSON** para revisar el flujo de almacenamiento.
+8. Usar **Ejecutar prueba solo log** para simular la macro sin presionar teclas reales.
+9. Usar **Detener ahora** durante una espera para validar que el runner recibe `runner.stop()` y se detiene en el siguiente punto seguro.
+
+### Guardado, carga, importación y exportación
+
+- Las macros guardadas por la UI se almacenan como JSON en la carpeta de usuario documentada en la sección **Rutas de usuario**.
+- Las macros cargadas o importadas se fuerzan visualmente a `execution_mode = "test_log"` antes de usarse desde la UI.
+- Importar un JSON externo no habilita ejecución real ni `test_keys`.
+- Exportar una macro escribe un JSON para revisión o respaldo, pero no crea ejecutables ni artefactos de build.
+
+### Previsualización y ejecución `test_log`
+
+La previsualización muestra datos declarativos de la macro: número de acciones, repeticiones, modo de ejecución, delays, variaciones y duración estimada. La ejecución `test_log` solo produce eventos legibles en el log visible; no llama a pulsaciones reales.
+
+### Límites de seguridad vigentes
+
+- Solo se permite `execution_mode = "test_log"` desde la UI y el runner.
+- `execution_mode = "real"` sigue bloqueado.
+- `execution_mode = "test_keys"` sigue bloqueado.
+- No hay grabación de macros.
+- No hay captura de teclado para construir acciones.
+- No hay mouse, clicks ni movimientos.
+- No se debe avanzar a Fase 16 sin una autorización explícita y una especificación nueva.
+
+### Comandos locales de validación en PowerShell
+
+Compilar módulos de la aplicación:
+
+```powershell
+python -m compileall app
+```
+
+Ejecutar pruebas unitarias:
+
+```powershell
+python -m unittest discover -s tests
+```
+
+Ejecutar verificación estática de seguridad:
+
+```powershell
+python -c "from pathlib import Path; text=Path('app/ui.py').read_text(encoding='utf-8') + Path('app/macro_runner.py').read_text(encoding='utf-8'); forbidden=['Controller(', '.press(', '.release(']; print(all(item not in text for item in forbidden))"
+```
+
+Generar ejecutable Windows con PyInstaller:
+
+```powershell
+.\build.bat
+```
+
+Comprobar la ubicación esperada del ejecutable:
+
+```powershell
+Test-Path "dist\Sistema de Macros de V\Sistema de Macros de V.exe"
+```
+
+Abrir la app desde Python para QA manual:
+
+```powershell
+python main.py
+```
+
+Para validar una release candidate completa, sigue `RELEASE_CHECKLIST.md` antes de etiquetar o distribuir cualquier build.
 
 
 ## Teclas soportadas en Fase 3
@@ -84,7 +178,7 @@ Una acción básica conserva esta estructura:
 }
 ```
 
-La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log; la Fase 7 agrega parada de emergencia; la Fase 8 integra el flujo básico en la UI; la Fase 9 permite construir macros manualmente desde la interfaz; la Fase 10 agrega guardado, carga, importación y exportación visual; la Fase 11 agrega edición y reordenamiento de acciones existentes sin habilitar ejecución real; la Fase 12 prepara el empaquetado seguro con PyInstaller; y la Fase 13 agrega pruebas automatizadas de regresión y seguridad con `unittest`.
+La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log; la Fase 7 agrega parada de emergencia; la Fase 8 integra el flujo básico en la UI; la Fase 9 permite construir macros manualmente desde la interfaz; la Fase 10 agrega guardado, carga, importación y exportación visual; la Fase 11 agrega edición y reordenamiento de acciones existentes sin habilitar ejecución real; la Fase 12 prepara el empaquetado seguro con PyInstaller; la Fase 13 agrega pruebas automatizadas de regresión y seguridad con `unittest`; la Fase 14 agrega CI; y la Fase 15 documenta la preparación de release candidate seguro.
 
 ## Rutas de usuario
 
@@ -318,6 +412,29 @@ python -c "from pathlib import Path; text=Path('app/ui.py').read_text(encoding='
 ```
 
 El último comando debe imprimir `True`. Si cualquiera de estos comandos falla en local o en GitHub Actions, la rama debe corregirse antes de avanzar a fases posteriores.
+
+## Fase 15: release candidate seguro y documentación de uso
+
+La Fase 15 prepara el proyecto como una release candidate segura. Esta fase es documental y de verificación: no cambia el comportamiento funcional de la aplicación, no modifica la UI, no modifica el runner y no agrega capacidades nuevas de ejecución.
+
+Objetivos de Fase 15:
+
+- Dejar una guía clara para instalar dependencias, ejecutar la app, correr pruebas y revisar el CI.
+- Documentar cómo generar el ejecutable con `build.bat` y dónde queda el `.exe`.
+- Documentar el flujo manual de QA: constructor, edición de acciones, guardado/carga, importación/exportación, previsualización, ejecución `test_log` y **Detener ahora**.
+- Mantener visibles los límites de seguridad antes de cualquier release.
+- Centralizar la validación final en `RELEASE_CHECKLIST.md`.
+
+Límites que Fase 15 conserva:
+
+- La aplicación sigue limitada a `execution_mode = "test_log"`.
+- `execution_mode = "real"` sigue bloqueado.
+- `execution_mode = "test_keys"` sigue bloqueado.
+- No se implementa ejecución real de teclas.
+- No se implementa grabación, mouse, clicks ni movimientos.
+- No se agregan dependencias ni artefactos generados al repositorio.
+
+Antes de considerar una versión candidata como lista, completa la checklist de `RELEASE_CHECKLIST.md` y confirma que el CI de GitHub Actions esté en verde.
 
 ## Fase 4: almacenamiento JSON de macros
 
