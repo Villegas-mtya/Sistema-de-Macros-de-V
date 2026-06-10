@@ -4,7 +4,7 @@ Sistema de Macros de V será una aplicación de escritorio en Python para constr
 
 ## Alcance actual
 
-El proyecto ya integra las Fases 1 a 13 sobre una base segura y progresiva:
+El proyecto ya integra las Fases 1 a 14 sobre una base segura y progresiva:
 
 - **Fase 4**: almacenamiento, carga, listado, borrado, importación y exportación de macros en JSON.
 - **Fase 5**: previsualización declarativa y estimación de duración antes de ejecutar.
@@ -16,10 +16,11 @@ El proyecto ya integra las Fases 1 a 13 sobre una base segura y progresiva:
 - **Fase 11**: edición de acciones existentes, limpieza de selección y reordenamiento visual de acciones sin salir del modo seguro `test_log`.
 - **Fase 12**: empaquetado preliminar seguro con PyInstaller para generar un ejecutable Windows sin habilitar ejecución real.
 - **Fase 13**: pruebas automatizadas de regresión y seguridad con `unittest`, sin abrir UI ni presionar teclas reales.
+- **Fase 14**: CI de regresión y seguridad con GitHub Actions en Windows, sin ejecutar la UI ni el `.exe`.
 
 La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración, recorrer una macro validada sin presionar teclas reales y mostrar el flujo desde una UI inicial de CustomTkinter.
 
-Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 13 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
+Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 14 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
 
 ## Lo que esta aplicación no hace
 
@@ -280,6 +281,43 @@ python -c "from pathlib import Path; text=Path('app/ui.py').read_text(encoding='
 ```
 
 El último comando debe imprimir `True`. La revisión de la UI gráfica se mantiene manual: ejecutar `python main.py`, comprobar visualmente el constructor, previsualización, guardado/carga e inicio/detención `test_log`, y cerrar la ventana sin habilitar ejecución real.
+
+## Fase 14: CI de regresión y seguridad con GitHub Actions
+
+La Fase 14 agrega el workflow `.github/workflows/ci.yml` para ejecutar automáticamente las validaciones de regresión y seguridad en GitHub Actions. El flujo corre en `windows-latest` para evitar problemas típicos de `pynput` en Linux sin `$DISPLAY` y usa Python 3.11 como versión estable.
+
+El CI se activa en `push` y `pull_request`. Sus pasos son deliberadamente seguros y no cambian el comportamiento de la aplicación:
+
+- Instala dependencias con `python -m pip install --upgrade pip` y `python -m pip install -r requirements.txt`.
+- Ejecuta `python -m compileall app` para detectar errores de sintaxis/importación básica en los módulos de la app.
+- Ejecuta `python -m unittest discover -s tests` para correr las pruebas automatizadas de Fase 13.
+- Ejecuta una verificación estática que revisa que `app/ui.py` y `app/macro_runner.py` no contengan llamadas directas a `Controller(`, `.press(` ni `.release(`.
+
+Límites de seguridad de Fase 14:
+
+- No ejecuta teclas reales.
+- No habilita `execution_mode = "real"`.
+- No habilita `execution_mode = "test_keys"`.
+- No abre la UI automáticamente.
+- No ejecuta `python main.py` dentro del CI.
+- No ejecuta el `.exe` dentro del CI.
+- La revisión de `python main.py` y del ejecutable generado por `build.bat` sigue siendo manual.
+
+Comandos locales equivalentes en PowerShell, desde la raíz del proyecto:
+
+```powershell
+python -m compileall app
+```
+
+```powershell
+python -m unittest discover -s tests
+```
+
+```powershell
+python -c "from pathlib import Path; text=Path('app/ui.py').read_text(encoding='utf-8') + Path('app/macro_runner.py').read_text(encoding='utf-8'); forbidden=['Controller(', '.press(', '.release(']; print(all(item not in text for item in forbidden))"
+```
+
+El último comando debe imprimir `True`. Si cualquiera de estos comandos falla en local o en GitHub Actions, la rama debe corregirse antes de avanzar a fases posteriores.
 
 ## Fase 4: almacenamiento JSON de macros
 
