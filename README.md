@@ -4,7 +4,7 @@ Sistema de Macros de V será una aplicación de escritorio en Python para constr
 
 ## Alcance actual
 
-El proyecto ya integra las Fases 1 a 20 sobre una base segura y progresiva:
+El proyecto ya integra las Fases 1 a 21 sobre una base segura y progresiva:
 
 - **Fase 4**: almacenamiento, carga, listado, borrado, importación y exportación de macros en JSON.
 - **Fase 5**: previsualización declarativa y estimación de duración antes de ejecutar.
@@ -23,10 +23,11 @@ El proyecto ya integra las Fases 1 a 20 sobre una base segura y progresiva:
 - **Fase 18**: preparación documental de una release candidate pública/manual `v0.1.0-rc1`, sin automatizar tags, releases ni publicación de artifacts.
 - **Fase 19**: preparación pública del repositorio para feedback, bugs reproducibles, reportes de seguridad y contribuciones dentro del alcance seguro.
 - **Fase 20**: guía de usuario final, primer uso y solución de problemas para `v0.1.0-rc1`, sin cambios funcionales.
+- **Fase 21**: roadmap público y estado del proyecto, con pendientes seguros, fuera del alcance y criterios para futuras fases, sin cambios funcionales.
 
 La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración, recorrer una macro validada sin presionar teclas reales y mostrar el flujo desde una UI inicial de CustomTkinter.
 
-Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 20 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
+Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 21 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
 
 ## Lo que esta aplicación no hace
 
@@ -59,7 +60,23 @@ python main.py
 - [Solución de problemas](docs/TROUBLESHOOTING.md): errores frecuentes de apertura, dependencias, artifact, JSON, previsualización, prueba solo log, **Detener ahora** y reportes.
 - [Política de seguridad](SECURITY.md): versiones soportadas, alcance seguro y límites para reportes.
 - [Changelog](CHANGELOG.md): cambios documentados por versión y sección `Unreleased`.
+- [Roadmap público](ROADMAP.md): estado actual del proyecto, fases completadas, pendientes seguros, fuera del alcance y criterios para futuras fases.
 - [Checklist de release candidate](RELEASE_CHECKLIST.md): validaciones manuales antes de etiquetar, publicar o distribuir builds.
+
+
+## Fase 21: roadmap público y estado del proyecto
+
+La Fase 21 agrega `ROADMAP.md` para documentar el estado actual del proyecto, las fases completadas, los pendientes seguros, lo que queda fuera del alcance y los criterios mínimos para evaluar futuras fases.
+
+Esta fase no cambia el comportamiento funcional de la aplicación:
+
+- `real` sigue bloqueado.
+- `test_keys` sigue bloqueado.
+- La app sigue limitada a `execution_mode = "test_log"`.
+- No se agrega ejecución real de teclas.
+- No se agrega grabación.
+- No se agrega mouse, clicks ni movimientos.
+- No se avanza a Fase 22 sin una especificación nueva y aprobación explícita.
 
 ## Fase 20: guía de usuario final y solución de problemas
 
