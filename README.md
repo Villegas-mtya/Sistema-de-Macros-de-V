@@ -4,7 +4,7 @@ Sistema de Macros de V será una aplicación de escritorio en Python para constr
 
 ## Alcance actual
 
-El proyecto ya integra las Fases 1 a 17 sobre una base segura y progresiva:
+El proyecto ya integra las Fases 1 a 18 sobre una base segura y progresiva:
 
 - **Fase 4**: almacenamiento, carga, listado, borrado, importación y exportación de macros en JSON.
 - **Fase 5**: previsualización declarativa y estimación de duración antes de ejecutar.
@@ -20,10 +20,11 @@ El proyecto ya integra las Fases 1 a 17 sobre una base segura y progresiva:
 - **Fase 15**: preparación de release candidate seguro, documentación final de uso y checklist manual de QA sin cambiar el comportamiento funcional.
 - **Fase 16**: workflow manual de build de release candidate en GitHub Actions, con artifact descargable y sin publicación automática de releases o tags.
 - **Fase 17**: mantenimiento conservador de workflows GitHub Actions para actions compatibles con Node 24 y runner Windows explícito `windows-2022`.
+- **Fase 18**: preparación documental de una release candidate pública/manual `v0.1.0-rc1`, sin automatizar tags, releases ni publicación de artifacts.
 
 La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración, recorrer una macro validada sin presionar teclas reales y mostrar el flujo desde una UI inicial de CustomTkinter.
 
-Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 17 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
+Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 18 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
 
 ## Lo que esta aplicación no hace
 
@@ -50,9 +51,27 @@ pip install -r requirements.txt
 python main.py
 ```
 
+## Fase 18: release candidate pública/manual
+
+La Fase 18 prepara la documentación mínima para publicar manualmente una release candidate pública del proyecto. La versión sugerida para esta candidata es `v0.1.0-rc1`.
+
+- `CHANGELOG.md` contiene los cambios, límites de seguridad e instrucciones de publicación manual de la release candidate.
+- El artifact descargable se genera ejecutando manualmente el workflow **Build manual de release candidate** (`release-build`) desde GitHub Actions.
+- El tag `v0.1.0-rc1` y la GitHub Release se crean manualmente después de validar CI, build y artifact.
+- No hay publicación automática de releases, no hay creación automática de tags y no se adjuntan artifacts automáticamente a una release.
+- Los modos `real` y `test_keys` siguen bloqueados; la aplicación continúa limitada a `execution_mode = "test_log"`.
+
+Comandos manuales sugeridos para el tag, solo después de completar la checklist de release:
+
+```powershell
+git status
+git tag -a v0.1.0-rc1 -m "Release candidate v0.1.0-rc1"
+git push origin v0.1.0-rc1
+```
+
 ## Guía rápida de uso seguro
 
-Esta guía resume el flujo recomendado para usar y revisar la aplicación en la release candidate de Fase 16. No cambia el comportamiento funcional: la app continúa limitada a `execution_mode = "test_log"`, sin ejecución real de teclas, sin `test_keys`, sin grabación, sin mouse, sin clicks y sin movimientos.
+Esta guía resume el flujo recomendado para usar y revisar la aplicación en la release candidate de Fase 18. No cambia el comportamiento funcional: la app continúa limitada a `execution_mode = "test_log"`, sin ejecución real de teclas, sin `test_keys`, sin grabación, sin mouse, sin clicks y sin movimientos.
 
 ### Instalación de dependencias
 
@@ -101,7 +120,7 @@ La previsualización muestra datos declarativos de la macro: número de acciones
 - No hay grabación de macros.
 - No hay captura de teclado para construir acciones.
 - No hay mouse, clicks ni movimientos.
-- No se debe avanzar a Fase 16 sin una autorización explícita y una especificación nueva.
+- No se debe avanzar a Fase 19 sin una autorización explícita y una especificación nueva.
 
 ### Comandos locales de validación en PowerShell
 
@@ -980,6 +999,6 @@ Flujo manual recomendado en la UI:
 7. Presionar **Previsualizar** y **Ejecutar prueba solo log** para confirmar que usan las acciones actualizadas/reordenadas.
 8. Usar **Detener ahora** durante una prueba para confirmar que la parada segura sigue operativa.
 
-## Pendiente para Fase 18
+## Pendiente para Fase 19
 
 Para una fase posterior quedan pendientes solo cambios autorizados por una especificación nueva y explícita. La ejecución real de teclas y `test_keys` deben seguir bloqueados hasta que exista una fase autorizada con controles de seguridad completos.

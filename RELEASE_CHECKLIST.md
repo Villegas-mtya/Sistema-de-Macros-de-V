@@ -1,6 +1,6 @@
 # Checklist de release candidate segura
 
-Esta checklist valida una versión candidata de **Sistema de Macros de V** sin cambiar el comportamiento funcional de la app. La release candidate de Fase 17 debe conservar solo `execution_mode = "test_log"` y mantener bloqueados `real` y `test_keys`.
+Esta checklist valida una versión candidata de **Sistema de Macros de V** sin cambiar el comportamiento funcional de la app. La release candidate de Fase 18, sugerida como `v0.1.0-rc1`, debe conservar solo `execution_mode = "test_log"` y mantener bloqueados `real` y `test_keys`.
 
 > Marca cada punto manualmente antes de etiquetar, publicar o distribuir un build.
 
@@ -28,7 +28,7 @@ git status --short --branch
 python -m pip install -r requirements.txt
 ```
 
-- [ ] Confirmar que no se agregaron dependencias nuevas para Fase 15.
+- [ ] Confirmar que no se agregaron dependencias nuevas para Fase 18.
 - [ ] Confirmar que `requirements.txt` no cambió salvo justificación explícita.
 
 ## 3. Validaciones automáticas locales
@@ -143,7 +143,7 @@ Test-Path "dist\Sistema de Macros de V\Sistema de Macros de V.exe"
 - [ ] Confirmar que el workflow no publicó un GitHub Release y no creó tags automáticamente.
 - [ ] Descargar el artifact **Sistema-de-Macros-de-V-release-candidate**.
 - [ ] Confirmar que el artifact contiene la carpeta generada `Sistema de Macros de V` y el ejecutable `Sistema de Macros de V.exe`.
-- [ ] Confirmar que el artifact sigue generándose y descargándose correctamente después del mantenimiento de Fase 17.
+- [ ] Confirmar que el artifact sigue generándose y descargándose correctamente después de la preparación documental de Fase 18.
 
 ## 11. QA manual del ejecutable descargado desde artifact
 
@@ -184,9 +184,43 @@ Test-Path "dist\Sistema de Macros de V\Sistema de Macros de V.exe"
 - [ ] Confirmar que no hay movimientos de mouse.
 - [ ] Confirmar que no se agregaron `recorder.py`, `player.py` ni módulos equivalentes de ejecución real.
 
-## 14. Cierre de release candidate
 
-- [ ] Revisar `README.md` y confirmar que documenta Fase 17.
+## 14. Publicación manual de `v0.1.0-rc1`
+
+- [ ] Confirmar que el CI automático de la rama o commit final está en verde antes de publicar.
+- [ ] Ejecutar manualmente el workflow **Build manual de release candidate** (`release-build`) desde GitHub Actions.
+- [ ] Descargar el artifact **Sistema-de-Macros-de-V-release-candidate** generado por `release-build`.
+- [ ] Probar el artifact descargado fuera del repositorio y confirmar que conserva solo `execution_mode = "test_log"`.
+- [ ] Revisar `CHANGELOG.md` y confirmar que la entrada `v0.1.0-rc1` describe cambios, límites de seguridad y exclusiones.
+- [ ] Confirmar estado local antes de crear el tag manual.
+
+```powershell
+git status
+```
+
+- [ ] Crear el tag anotado manualmente en local.
+
+```powershell
+git tag -a v0.1.0-rc1 -m "Release candidate v0.1.0-rc1"
+```
+
+- [ ] Subir el tag manualmente al remoto.
+
+```powershell
+git push origin v0.1.0-rc1
+```
+
+- [ ] Crear la GitHub Release manualmente desde la interfaz web de GitHub usando el tag `v0.1.0-rc1`.
+- [ ] Copiar o resumir manualmente el contenido relevante de `CHANGELOG.md` en las notas de la GitHub Release.
+- [ ] Adjuntar manualmente el artifact descargado desde `release-build` a la GitHub Release.
+- [ ] Marcar la GitHub Release como **pre-release** si corresponde al estado de release candidate.
+- [ ] Confirmar que ningún workflow creó tags automáticamente.
+- [ ] Confirmar que ningún workflow publicó una GitHub Release automáticamente.
+- [ ] Confirmar que ningún workflow adjuntó artifacts automáticamente a una release.
+
+## 15. Cierre de release candidate
+
+- [ ] Revisar `README.md` y confirmar que documenta Fase 18.
 - [ ] Revisar esta checklist y confirmar que todos los puntos aplicables están marcados.
 - [ ] Confirmar que el CI está en verde.
 - [ ] Confirmar que el workflow manual `release-build` está en verde cuando se use para distribuir artifact.
@@ -198,6 +232,6 @@ git status --short --branch
 
 - [ ] Documentar cualquier limitación conocida antes de distribuir la release candidate.
 
-## Pendiente para Fase 18
+## Pendiente para Fase 19
 
-Fase 18 no está implementada en esta release candidate. Cualquier avance posterior debe tener una especificación nueva y explícita. En particular, no se debe habilitar ejecución real, `test_keys`, grabación, mouse, clicks ni movimientos sin una fase autorizada y controles de seguridad completos.
+Fase 19 no está implementada en esta release candidate. Cualquier avance posterior debe tener una especificación nueva y explícita. En particular, no se debe habilitar ejecución real, `test_keys`, grabación, mouse, clicks ni movimientos sin una fase autorizada y controles de seguridad completos.
