@@ -6,6 +6,9 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 
 ### Mantenimiento
 
+- Agregado `ROADMAP.md` con el estado público del proyecto, fases completadas, pendientes seguros, fuera del alcance, límites de seguridad y criterios para futuras fases.
+- Actualizado `README.md` con enlace al roadmap y resumen de Fase 21.
+- Sin cambios funcionales en Fase 21: la aplicación sigue limitada a `test_log` y mantiene bloqueados `real`, `test_keys`, ejecución real, grabación, mouse, clicks y movimientos.
 - Agregado `docs/USER_GUIDE.md` con guía de usuario final, primer uso, uso desde Python, uso desde `.exe`, operaciones de macros y límites de `test_log`.
 - Agregado `docs/TROUBLESHOOTING.md` con solución de problemas frecuentes para dependencias, apertura, artifact, JSON, previsualización, prueba solo log, **Detener ahora** y reportes.
 - Actualizado `README.md` con enlaces a la documentación de usuario final, solución de problemas, seguridad, changelog y checklist de release candidate.
