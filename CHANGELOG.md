@@ -6,6 +6,11 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 
 ### Mantenimiento
 
+- Agregado `docs/USER_GUIDE.md` con guía de usuario final, primer uso, uso desde Python, uso desde `.exe`, operaciones de macros y límites de `test_log`.
+- Agregado `docs/TROUBLESHOOTING.md` con solución de problemas frecuentes para dependencias, apertura, artifact, JSON, previsualización, prueba solo log, **Detener ahora** y reportes.
+- Actualizado `README.md` con enlaces a la documentación de usuario final, solución de problemas, seguridad, changelog y checklist de release candidate.
+- Corregidas referencias documentales obsoletas sobre Fase 19 pendiente; Fase 19 ya está integrada.
+- Sin cambios funcionales en Fase 20: la aplicación sigue limitada a `test_log` y mantiene bloqueados `real`, `test_keys`, ejecución real, grabación, mouse, clicks y movimientos.
 - Agregado `SECURITY.md` con la política de seguridad, versiones soportadas y límites para reportes.
 - Agregadas plantillas de issues para bugs, feedback de release candidate y reportes de seguridad.
 - Agregada plantilla de pull request con checklist de alcance seguro y validaciones locales.
