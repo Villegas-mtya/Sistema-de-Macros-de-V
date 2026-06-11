@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Antes de abrir un issue
+    url: https://github.com/
+    about: Usa las plantillas disponibles para bugs, feedback de release candidate o reportes de seguridad. No abras reportes fuera del alcance seguro del proyecto.
