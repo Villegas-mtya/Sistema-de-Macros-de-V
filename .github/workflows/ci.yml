@@ -7,14 +7,14 @@ on:
 jobs:
   regression-and-safety:
     name: Pruebas de regresión y seguridad
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
       - name: Obtener código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configurar Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
