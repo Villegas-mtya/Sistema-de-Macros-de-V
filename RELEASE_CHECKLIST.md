@@ -1,6 +1,6 @@
 # Checklist de release candidate segura
 
-Esta checklist valida una versión candidata de **Sistema de Macros de V** sin cambiar el comportamiento funcional de la app. La release candidate de Fase 15 debe conservar solo `execution_mode = "test_log"` y mantener bloqueados `real` y `test_keys`.
+Esta checklist valida una versión candidata de **Sistema de Macros de V** sin cambiar el comportamiento funcional de la app. La release candidate de Fase 17 debe conservar solo `execution_mode = "test_log"` y mantener bloqueados `real` y `test_keys`.
 
 > Marca cada punto manualmente antes de etiquetar, publicar o distribuir un build.
 
@@ -57,8 +57,11 @@ python -c "from pathlib import Path; text=Path('app/ui.py').read_text(encoding='
 
 - [ ] Confirmar que `.github/workflows/ci.yml` existe.
 - [ ] Confirmar que el CI se ejecuta en `push` y `pull_request`.
+- [ ] Confirmar que el CI usa `windows-2022` como runner Windows explícito.
+- [ ] Confirmar que el CI usa actions compatibles con Node 24 (`actions/checkout@v5` y `actions/setup-python@v6`).
 - [ ] Confirmar que el CI instala dependencias, ejecuta `compileall`, ejecuta `unittest` y ejecuta la verificación estática de seguridad.
 - [ ] Confirmar que el último workflow de la rama está en verde antes de publicar la release candidate.
+- [ ] Confirmar que el CI automático no muestra advertencias críticas de Node.js 20 ni de redirección de `windows-latest`.
 
 ## 5. QA manual desde Python
 
@@ -130,14 +133,17 @@ Test-Path "dist\Sistema de Macros de V\Sistema de Macros de V.exe"
 
 - [ ] Abrir GitHub Actions en el repositorio.
 - [ ] Ejecutar manualmente el workflow **Build manual de release candidate** (`release-build.yml`) con **Run workflow**.
-- [ ] Confirmar que el workflow corre sobre `windows-latest` y configura Python 3.11.
+- [ ] Confirmar que el workflow corre sobre `windows-2022` y configura Python 3.11.
+- [ ] Confirmar que el workflow usa actions compatibles con Node 24 (`actions/checkout@v5`, `actions/setup-python@v6` y `actions/upload-artifact@v6`).
 - [ ] Confirmar que el workflow termina en verde.
+- [ ] Confirmar que el workflow manual no muestra advertencias críticas de Node.js 20 ni de redirección de `windows-latest`.
 - [ ] Confirmar que antes del build ejecutó `compileall`, `unittest` y la verificación estática de seguridad.
 - [ ] Confirmar que el workflow ejecutó `build.bat`.
 - [ ] Confirmar que el workflow no ejecutó el `.exe`, no abrió la UI y no ejecutó `python main.py`.
 - [ ] Confirmar que el workflow no publicó un GitHub Release y no creó tags automáticamente.
 - [ ] Descargar el artifact **Sistema-de-Macros-de-V-release-candidate**.
 - [ ] Confirmar que el artifact contiene la carpeta generada `Sistema de Macros de V` y el ejecutable `Sistema de Macros de V.exe`.
+- [ ] Confirmar que el artifact sigue generándose y descargándose correctamente después del mantenimiento de Fase 17.
 
 ## 11. QA manual del ejecutable descargado desde artifact
 
@@ -180,7 +186,7 @@ Test-Path "dist\Sistema de Macros de V\Sistema de Macros de V.exe"
 
 ## 14. Cierre de release candidate
 
-- [ ] Revisar `README.md` y confirmar que documenta Fase 16.
+- [ ] Revisar `README.md` y confirmar que documenta Fase 17.
 - [ ] Revisar esta checklist y confirmar que todos los puntos aplicables están marcados.
 - [ ] Confirmar que el CI está en verde.
 - [ ] Confirmar que el workflow manual `release-build` está en verde cuando se use para distribuir artifact.
@@ -192,6 +198,6 @@ git status --short --branch
 
 - [ ] Documentar cualquier limitación conocida antes de distribuir la release candidate.
 
-## Pendiente para Fase 17
+## Pendiente para Fase 18
 
-Fase 17 no está implementada en esta release candidate. Cualquier avance posterior debe tener una especificación nueva y explícita. En particular, no se debe habilitar ejecución real, `test_keys`, grabación, mouse, clicks ni movimientos sin una fase autorizada y controles de seguridad completos.
+Fase 18 no está implementada en esta release candidate. Cualquier avance posterior debe tener una especificación nueva y explícita. En particular, no se debe habilitar ejecución real, `test_keys`, grabación, mouse, clicks ni movimientos sin una fase autorizada y controles de seguridad completos.

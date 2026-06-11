@@ -4,7 +4,7 @@ Sistema de Macros de V será una aplicación de escritorio en Python para constr
 
 ## Alcance actual
 
-El proyecto ya integra las Fases 1 a 16 sobre una base segura y progresiva:
+El proyecto ya integra las Fases 1 a 17 sobre una base segura y progresiva:
 
 - **Fase 4**: almacenamiento, carga, listado, borrado, importación y exportación de macros en JSON.
 - **Fase 5**: previsualización declarativa y estimación de duración antes de ejecutar.
@@ -19,10 +19,11 @@ El proyecto ya integra las Fases 1 a 16 sobre una base segura y progresiva:
 - **Fase 14**: CI de regresión y seguridad con GitHub Actions en Windows, sin ejecutar la UI ni el `.exe`.
 - **Fase 15**: preparación de release candidate seguro, documentación final de uso y checklist manual de QA sin cambiar el comportamiento funcional.
 - **Fase 16**: workflow manual de build de release candidate en GitHub Actions, con artifact descargable y sin publicación automática de releases o tags.
+- **Fase 17**: mantenimiento conservador de workflows GitHub Actions para actions compatibles con Node 24 y runner Windows explícito `windows-2022`.
 
 La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración, recorrer una macro validada sin presionar teclas reales y mostrar el flujo desde una UI inicial de CustomTkinter.
 
-Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 16 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
+Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 17 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
 
 ## Lo que esta aplicación no hace
 
@@ -179,7 +180,7 @@ Una acción básica conserva esta estructura:
 }
 ```
 
-La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log; la Fase 7 agrega parada de emergencia; la Fase 8 integra el flujo básico en la UI; la Fase 9 permite construir macros manualmente desde la interfaz; la Fase 10 agrega guardado, carga, importación y exportación visual; la Fase 11 agrega edición y reordenamiento de acciones existentes sin habilitar ejecución real; la Fase 12 prepara el empaquetado seguro con PyInstaller; la Fase 13 agrega pruebas automatizadas de regresión y seguridad con `unittest`; la Fase 14 agrega CI; la Fase 15 documenta la preparación de release candidate seguro; y la Fase 16 agrega un build manual de release candidate como artifact descargable en GitHub Actions.
+La Fase 3 solo validaba y normalizaba teclas; la Fase 4 agrega almacenamiento JSON; la Fase 5 agrega previsualización; la Fase 6 agrega un runner seguro que simula la ejecución únicamente con eventos de log; la Fase 7 agrega parada de emergencia; la Fase 8 integra el flujo básico en la UI; la Fase 9 permite construir macros manualmente desde la interfaz; la Fase 10 agrega guardado, carga, importación y exportación visual; la Fase 11 agrega edición y reordenamiento de acciones existentes sin habilitar ejecución real; la Fase 12 prepara el empaquetado seguro con PyInstaller; la Fase 13 agrega pruebas automatizadas de regresión y seguridad con `unittest`; la Fase 14 agrega CI; la Fase 15 documenta la preparación de release candidate seguro; la Fase 16 agrega un build manual de release candidate como artifact descargable en GitHub Actions; y la Fase 17 actualiza workflows para Node 24 y fija el runner Windows explícito `windows-2022`.
 
 ## Rutas de usuario
 
@@ -475,6 +476,29 @@ Límites que Fase 16 conserva:
 - No se implementa grabación, mouse, clicks ni movimientos.
 - No se agregan dependencias nuevas.
 - No se deben versionar artefactos generados como `build/`, `dist/`, `*.spec` o `*.exe`.
+
+## Fase 17: mantenimiento de workflows GitHub Actions
+
+La Fase 17 actualiza únicamente los workflows de GitHub Actions para reducir advertencias de mantenimiento futuro. No cambia el comportamiento funcional de la aplicación, no modifica `app/`, no modifica `tests/`, no modifica `main.py`, no modifica `build.bat` y no agrega dependencias nuevas.
+
+Cambios de mantenimiento aplicados:
+
+- `.github/workflows/ci.yml` usa `actions/checkout@v5` y `actions/setup-python@v6`, versiones orientadas a compatibilidad con Node 24.
+- `.github/workflows/release-build.yml` usa `actions/checkout@v5`, `actions/setup-python@v6` y `actions/upload-artifact@v6`, versiones orientadas a compatibilidad con Node 24.
+- Ambos workflows usan `runs-on: windows-2022` para evitar depender de redirecciones futuras de `windows-latest` y mantener un entorno Windows explícito.
+
+El CI automático sigue ejecutándose en `push` y `pull_request`. Mantiene las mismas validaciones: instala `requirements.txt`, ejecuta `python -m compileall app`, ejecuta `python -m unittest discover -s tests` y conserva la verificación estática contra `Controller(`, `.press(` y `.release(`.
+
+El build de release candidate sigue siendo manual mediante `workflow_dispatch`. Mantiene `build.bat`, verifica `dist\Sistema de Macros de V\Sistema de Macros de V.exe` y sube el artifact **Sistema-de-Macros-de-V-release-candidate** sin ejecutar el `.exe`, sin abrir la UI, sin ejecutar `python main.py`, sin publicar releases y sin crear tags.
+
+Límites que Fase 17 conserva:
+
+- La aplicación sigue limitada a `execution_mode = "test_log"`.
+- `execution_mode = "real"` sigue bloqueado.
+- `execution_mode = "test_keys"` sigue bloqueado.
+- No se implementa ejecución real de teclas.
+- No se implementa grabación, mouse, clicks ni movimientos.
+- No se agregan artefactos generados al repositorio.
 
 ## Fase 4: almacenamiento JSON de macros
 
@@ -956,6 +980,6 @@ Flujo manual recomendado en la UI:
 7. Presionar **Previsualizar** y **Ejecutar prueba solo log** para confirmar que usan las acciones actualizadas/reordenadas.
 8. Usar **Detener ahora** durante una prueba para confirmar que la parada segura sigue operativa.
 
-## Pendiente para Fase 17
+## Pendiente para Fase 18
 
 Para una fase posterior quedan pendientes solo cambios autorizados por una especificación nueva y explícita. La ejecución real de teclas y `test_keys` deben seguir bloqueados hasta que exista una fase autorizada con controles de seguridad completos.
