@@ -4,7 +4,7 @@ Sistema de Macros de V será una aplicación de escritorio en Python para constr
 
 ## Alcance actual
 
-El proyecto ya integra las Fases 1 a 18 sobre una base segura y progresiva:
+El proyecto ya integra las Fases 1 a 20 sobre una base segura y progresiva:
 
 - **Fase 4**: almacenamiento, carga, listado, borrado, importación y exportación de macros en JSON.
 - **Fase 5**: previsualización declarativa y estimación de duración antes de ejecutar.
@@ -22,10 +22,11 @@ El proyecto ya integra las Fases 1 a 18 sobre una base segura y progresiva:
 - **Fase 17**: mantenimiento conservador de workflows GitHub Actions para actions compatibles con Node 24 y runner Windows explícito `windows-2022`.
 - **Fase 18**: preparación documental de una release candidate pública/manual `v0.1.0-rc1`, sin automatizar tags, releases ni publicación de artifacts.
 - **Fase 19**: preparación pública del repositorio para feedback, bugs reproducibles, reportes de seguridad y contribuciones dentro del alcance seguro.
+- **Fase 20**: guía de usuario final, primer uso y solución de problemas para `v0.1.0-rc1`, sin cambios funcionales.
 
 La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración, recorrer una macro validada sin presionar teclas reales y mostrar el flujo desde una UI inicial de CustomTkinter.
 
-Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 19 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
+Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 20 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
 
 ## Lo que esta aplicación no hace
 
@@ -51,6 +52,27 @@ pip install -r requirements.txt
 ```bash
 python main.py
 ```
+
+## Documentación para usuarios y revisión
+
+- [Guía de usuario final](docs/USER_GUIDE.md): instalación, primer uso, flujo desde Python, flujo desde `.exe`, operaciones de macro y explicación de `test_log`.
+- [Solución de problemas](docs/TROUBLESHOOTING.md): errores frecuentes de apertura, dependencias, artifact, JSON, previsualización, prueba solo log, **Detener ahora** y reportes.
+- [Política de seguridad](SECURITY.md): versiones soportadas, alcance seguro y límites para reportes.
+- [Changelog](CHANGELOG.md): cambios documentados por versión y sección `Unreleased`.
+- [Checklist de release candidate](RELEASE_CHECKLIST.md): validaciones manuales antes de etiquetar, publicar o distribuir builds.
+
+## Fase 20: guía de usuario final y solución de problemas
+
+La Fase 20 agrega documentación orientada a usuarios finales de `v0.1.0-rc1`: guía de primer uso, uso desde Python, uso desde `.exe`, operaciones habituales de macros y solución de problemas comunes.
+
+Esta fase no cambia el comportamiento funcional de la aplicación:
+
+- `real` sigue bloqueado.
+- `test_keys` sigue bloqueado.
+- La app sigue limitada a `execution_mode = "test_log"`.
+- No se agrega ejecución real de teclas.
+- No se agrega grabación.
+- No se agrega mouse, clicks ni movimientos.
 
 ## Fase 19: feedback público y reportes de seguridad
 
@@ -82,7 +104,7 @@ git push origin v0.1.0-rc1
 
 ## Guía rápida de uso seguro
 
-Esta guía resume el flujo recomendado para usar y revisar la aplicación en la release candidate de Fase 18. No cambia el comportamiento funcional: la app continúa limitada a `execution_mode = "test_log"`, sin ejecución real de teclas, sin `test_keys`, sin grabación, sin mouse, sin clicks y sin movimientos.
+Esta guía resume el flujo recomendado para usar y revisar la aplicación en la release candidate `v0.1.0-rc1`. No cambia el comportamiento funcional: la app continúa limitada a `execution_mode = "test_log"`, sin ejecución real de teclas, sin `test_keys`, sin grabación, sin mouse, sin clicks y sin movimientos.
 
 ### Instalación de dependencias
 
@@ -131,7 +153,7 @@ La previsualización muestra datos declarativos de la macro: número de acciones
 - No hay grabación de macros.
 - No hay captura de teclado para construir acciones.
 - No hay mouse, clicks ni movimientos.
-- No se debe avanzar a Fase 19 sin una autorización explícita y una especificación nueva.
+- No se debe avanzar a Fase 21 sin una autorización explícita y una especificación nueva.
 
 ### Comandos locales de validación en PowerShell
 
@@ -1010,6 +1032,6 @@ Flujo manual recomendado en la UI:
 7. Presionar **Previsualizar** y **Ejecutar prueba solo log** para confirmar que usan las acciones actualizadas/reordenadas.
 8. Usar **Detener ahora** durante una prueba para confirmar que la parada segura sigue operativa.
 
-## Pendiente para Fase 19
+## Pendiente para fases posteriores
 
-Para una fase posterior quedan pendientes solo cambios autorizados por una especificación nueva y explícita. La ejecución real de teclas y `test_keys` deben seguir bloqueados hasta que exista una fase autorizada con controles de seguridad completos.
+Fase 19 ya está integrada y Fase 20 solo agrega documentación de usuario final y solución de problemas. Para fases posteriores quedan pendientes únicamente cambios autorizados por una especificación nueva y explícita. La ejecución real de teclas y `test_keys` deben seguir bloqueados hasta que exista una fase autorizada con controles de seguridad completos.
