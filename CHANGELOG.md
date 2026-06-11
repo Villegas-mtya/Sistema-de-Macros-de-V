@@ -2,6 +2,15 @@
 
 Todos los cambios notables de este proyecto se documentan en este archivo.
 
+## Unreleased
+
+### Mantenimiento
+
+- Agregado `SECURITY.md` con la política de seguridad, versiones soportadas y límites para reportes.
+- Agregadas plantillas de issues para bugs, feedback de release candidate y reportes de seguridad.
+- Agregada plantilla de pull request con checklist de alcance seguro y validaciones locales.
+- Sin cambios funcionales en la aplicación: `real`, `test_keys`, ejecución real, grabación, mouse, clicks y movimientos siguen fuera de alcance.
+
 ## v0.1.0-rc1
 
 Release candidate pública y segura preparada para revisión manual. Esta versión candidata no cambia el comportamiento funcional de la aplicación: mantiene el proyecto en modo seguro, con ejecución limitada a `test_log`, y sirve como punto de distribución manual para validar el estado actual antes de avanzar a fases posteriores.

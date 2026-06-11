@@ -21,10 +21,11 @@ El proyecto ya integra las Fases 1 a 18 sobre una base segura y progresiva:
 - **Fase 16**: workflow manual de build de release candidate en GitHub Actions, con artifact descargable y sin publicación automática de releases o tags.
 - **Fase 17**: mantenimiento conservador de workflows GitHub Actions para actions compatibles con Node 24 y runner Windows explícito `windows-2022`.
 - **Fase 18**: preparación documental de una release candidate pública/manual `v0.1.0-rc1`, sin automatizar tags, releases ni publicación de artifacts.
+- **Fase 19**: preparación pública del repositorio para feedback, bugs reproducibles, reportes de seguridad y contribuciones dentro del alcance seguro.
 
 La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración, recorrer una macro validada sin presionar teclas reales y mostrar el flujo desde una UI inicial de CustomTkinter.
 
-Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 18 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
+Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 19 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
 
 ## Lo que esta aplicación no hace
 
@@ -50,6 +51,16 @@ pip install -r requirements.txt
 ```bash
 python main.py
 ```
+
+## Fase 19: feedback público y reportes de seguridad
+
+La Fase 19 prepara el repositorio público para recibir feedback ordenado sobre `v0.1.0-rc1`, bugs reproducibles, reportes de seguridad y pull requests revisables. Esta fase no cambia el comportamiento funcional de la aplicación.
+
+- Existen plantillas de issues para bugs, feedback de release candidate y reportes de seguridad.
+- `SECURITY.md` documenta versiones soportadas, cómo reportar problemas de seguridad y límites aceptables para reportes.
+- La plantilla de pull request pide confirmar que los cambios respetan el alcance seguro y que pasan las validaciones locales.
+- Los reportes y contribuciones deben respetar que `v0.1.0-rc1` sigue siendo una release candidate segura.
+- No se deben proponer ni incorporar cambios que habiliten `real`, `test_keys`, ejecución real de teclas, grabación, mouse, clicks ni movimientos.
 
 ## Fase 18: release candidate pública/manual
 
