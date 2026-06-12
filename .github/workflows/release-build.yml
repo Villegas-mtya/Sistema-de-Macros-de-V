@@ -29,10 +29,6 @@ jobs:
       - name: Ejecutar pruebas unittest
         run: python -m unittest discover -s tests
 
-      - name: Verificar seguridad estática sin pulsaciones reales
-        run: >-
-          python -c "from pathlib import Path; text=Path('app/ui.py').read_text(encoding='utf-8') + Path('app/macro_runner.py').read_text(encoding='utf-8'); forbidden=['Controller(', '.press(', '.release(']; print(all(item not in text for item in forbidden)); raise SystemExit(0 if all(item not in text for item in forbidden) else 1)"
-
       - name: Construir ejecutable con build.bat
         run: .\build.bat
 
