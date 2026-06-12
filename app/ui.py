@@ -25,6 +25,7 @@ from app.app_paths import (
     get_logs_dir,
     get_macros_dir,
     get_user_data_dir,
+    resource_path,
 )
 from app.key_mapper import (
     get_key_display_name,
@@ -63,6 +64,7 @@ EXECUTION_MODE_LABELS_BY_VALUE = {
 }
 EXECUTION_MODE_LABELS = list(EXECUTION_MODE_VALUES_BY_LABEL)
 LOG_POLL_INTERVAL_MS = 100
+APP_ICON_RESOURCE_PATH = "assets/app_icon.ico"
 
 VARIATION_LABELS_BY_VALUE = {
     "fixed": "Sin variación",
@@ -83,6 +85,7 @@ class MacroApp(ctk.CTk):
         self.title(APP_NAME)
         self.geometry("1280x820")
         self.minsize(1160, 720)
+        self._apply_window_icon()
 
         self.current_macro: dict[str, Any] = self._create_test_log_template()
         self.actions: list[dict[str, Any]] = copy.deepcopy(self.current_macro["actions"])
@@ -150,6 +153,23 @@ class MacroApp(ctk.CTk):
         )
         self._render_preview()
         self.after(LOG_POLL_INTERVAL_MS, self._poll_runner_events)
+
+    def _apply_window_icon(self) -> None:
+        """Aplica el icono visual de la ventana si el recurso esta disponible.
+
+        El icono es un recurso opcional: en desarrollo vive en ``assets`` y en
+        PyInstaller puede resolverse desde ``sys._MEIPASS`` mediante
+        ``resource_path``. Cualquier error de Tkinter se ignora para no impedir
+        que la aplicacion abra.
+        """
+        try:
+            icon_path = resource_path(APP_ICON_RESOURCE_PATH)
+            if icon_path.is_file():
+                self.iconbitmap(str(icon_path))
+        except Exception:
+            # El icono no es critico: si Tkinter/Windows rechaza el archivo o
+            # el recurso no existe, la UI debe abrir normalmente sin avisos.
+            pass
 
     def _create_test_log_template(self) -> dict[str, Any]:
         """Devuelve una plantilla segura para UI forzando ``execution_mode=test_log``."""
