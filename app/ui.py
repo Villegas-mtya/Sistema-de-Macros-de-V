@@ -3,8 +3,8 @@
 Fase 11 refina el constructor seguro de Fase 10.
 La pantalla permite crear y editar acciones de teclado, reordenarlas,
 guardar/cargar macros JSON, importar/exportar archivos, previsualizar los datos
-actuales y ejecutar solo una simulación ``test_log``. La UI sigue sin presionar
-teclas reales y bloquea los modos ``real`` y ``test_keys``.
+actuales y ejecutar en ``test_log`` o en modo ``real`` controlado. La UI exige
+selección explícita y confirmación visual antes de presionar teclas reales.
 """
 
 from __future__ import annotations
@@ -32,7 +32,13 @@ from app.key_mapper import (
     normalize_key,
     validate_key,
 )
-from app.macro_runner import MacroRunner, RunnerEvent
+from app.macro_runner import (
+    EXECUTION_MODE_REAL,
+    EXECUTION_MODE_TEST_LOG,
+    EXECUTION_MODE_TEST_KEYS,
+    MacroRunner,
+    RunnerEvent,
+)
 from app.macro_storage import (
     delete_macro,
     export_macro,
@@ -45,8 +51,17 @@ from app.macro_storage import (
 from app.preview import build_macro_preview, format_seconds
 from app.validators import validate_macro_data
 
-ALLOWED_UI_EXECUTION_MODE = "test_log"
-BLOCKED_EXECUTION_MODES = {"real", "test_keys"}
+DEFAULT_UI_EXECUTION_MODE = EXECUTION_MODE_TEST_LOG
+ALLOWED_UI_EXECUTION_MODES = {EXECUTION_MODE_TEST_LOG, EXECUTION_MODE_REAL}
+BLOCKED_EXECUTION_MODES = {EXECUTION_MODE_TEST_KEYS}
+EXECUTION_MODE_VALUES_BY_LABEL = {
+    "Prueba solo log / test_log": EXECUTION_MODE_TEST_LOG,
+    "Ejecución real / real": EXECUTION_MODE_REAL,
+}
+EXECUTION_MODE_LABELS_BY_VALUE = {
+    value: label for label, value in EXECUTION_MODE_VALUES_BY_LABEL.items()
+}
+EXECUTION_MODE_LABELS = list(EXECUTION_MODE_VALUES_BY_LABEL)
 LOG_POLL_INTERVAL_MS = 100
 
 VARIATION_LABELS_BY_VALUE = {
@@ -61,7 +76,7 @@ KEY_SELECTION_MODES = ("simple", "advanced")
 
 
 class MacroApp(ctk.CTk):
-    """Ventana principal de Fase 11 con edición visual y runner ``test_log``."""
+    """Ventana principal con edición visual y ejecución controlada de Fase 22."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -77,6 +92,8 @@ class MacroApp(ctk.CTk):
 
         self.simple_key_options = get_simple_key_options()
 
+        self.execution_mode_var = StringVar(value=EXECUTION_MODE_LABELS_BY_VALUE[DEFAULT_UI_EXECUTION_MODE])
+        self.execution_mode_var.trace_add("write", self._on_execution_mode_changed)
         self.key_selection_mode_var = StringVar(value=self.current_macro["key_selection_mode"])
         self.simple_key_var = StringVar(value=self.simple_key_options[0])
         self.advanced_key_var = StringVar(value="enter")
@@ -118,6 +135,7 @@ class MacroApp(ctk.CTk):
         self.import_json_button: ctk.CTkButton
         self.export_json_button: ctk.CTkButton
         self.saved_macros_menu: ctk.CTkOptionMenu
+        self.execution_mode_menu: ctk.CTkOptionMenu
         self.simple_key_menu: ctk.CTkOptionMenu
         self.advanced_key_entry: ctk.CTkEntry
         self.actions_list_frame: ctk.CTkScrollableFrame
@@ -128,7 +146,7 @@ class MacroApp(ctk.CTk):
         self._render_actions_list()
         self._refresh_saved_macros(log_result=False)
         self._append_log_line(
-            "UI lista. Construye acciones manuales, guarda/carga macros o ejecuta una prueba solo log."
+            "UI lista. El modo por defecto es test_log; cambia a real solo si quieres presionar teclas reales."
         )
         self._render_preview()
         self.after(LOG_POLL_INTERVAL_MS, self._poll_runner_events)
@@ -136,7 +154,7 @@ class MacroApp(ctk.CTk):
     def _create_test_log_template(self) -> dict[str, Any]:
         """Devuelve una plantilla segura para UI forzando ``execution_mode=test_log``."""
         macro_template = get_default_macro_template()
-        macro_template["execution_mode"] = ALLOWED_UI_EXECUTION_MODE
+        macro_template["execution_mode"] = DEFAULT_UI_EXECUTION_MODE
         macro_template["key_selection_mode"] = "simple"
         return macro_template
 
@@ -164,8 +182,8 @@ class MacroApp(ctk.CTk):
         subtitle = ctk.CTkLabel(
             header,
             text=(
-                "Fase 10: macros guardadas, importación/exportación JSON y ejecución segura "
-                "solo en modo test_log. No se presionan teclas reales."
+                "Fase 22: test_log por defecto y ejecución real de teclado solo con "
+                "selección explícita y confirmación manual."
             ),
             anchor="w",
         )
@@ -192,7 +210,7 @@ class MacroApp(ctk.CTk):
 
         self.status_label = ctk.CTkLabel(
             status_panel,
-            text="Estado: constructor y macros guardadas listos en modo test_log",
+            text="Estado: constructor listo; modo por defecto test_log",
             fg_color=("#dbeafe", "#1e3a8a"),
             corner_radius=8,
             padx=14,
@@ -521,12 +539,23 @@ class MacroApp(ctk.CTk):
         )
         self.preview_button.grid(row=2, column=0, sticky="ew", padx=12, pady=4)
 
+        ctk.CTkLabel(controls, text="Modo de ejecución", anchor="w").grid(
+            row=3, column=0, sticky="w", padx=12, pady=(8, 2)
+        )
+        self.execution_mode_menu = ctk.CTkOptionMenu(
+            controls,
+            values=EXECUTION_MODE_LABELS,
+            variable=self.execution_mode_var,
+            command=lambda _value: self._on_execution_mode_changed(),
+        )
+        self.execution_mode_menu.grid(row=4, column=0, sticky="ew", padx=12, pady=4)
+
         self.run_button = ctk.CTkButton(
             controls,
             text="Ejecutar prueba solo log",
-            command=self._start_test_log_run,
+            command=self._start_macro_run,
         )
-        self.run_button.grid(row=3, column=0, sticky="ew", padx=12, pady=4)
+        self.run_button.grid(row=5, column=0, sticky="ew", padx=12, pady=4)
 
         self.stop_button = ctk.CTkButton(
             controls,
@@ -536,17 +565,17 @@ class MacroApp(ctk.CTk):
             fg_color=("#dc2626", "#991b1b"),
             hover_color=("#b91c1c", "#7f1d1d"),
         )
-        self.stop_button.grid(row=4, column=0, sticky="ew", padx=12, pady=4)
+        self.stop_button.grid(row=6, column=0, sticky="ew", padx=12, pady=4)
 
         safety_text = (
             "Seguridad activa:\n"
-            "• La UI construye macros con execution_mode = test_log.\n"
-            "• Los modos real y test_keys siguen bloqueados.\n"
-            "• No hay captura de teclado, mouse, grabación ni pulsación real.\n"
-            "• Detener ahora llama a runner.stop()."
+            "• test_log es el modo por defecto para probar sin presionar teclas.\n"
+            "• real presiona teclas solo tras confirmación visual.\n"
+            "• test_keys sigue bloqueado. No hay grabación, mouse, clicks ni movimientos.\n"
+            "• Detener ahora llama a runner.stop(); F9 queda limitado a parada de emergencia."
         )
         ctk.CTkLabel(controls, text=safety_text, justify="left", anchor="nw").grid(
-            row=5, column=0, sticky="ew", padx=12, pady=(10, 12)
+            row=7, column=0, sticky="ew", padx=12, pady=(10, 12)
         )
 
     def _build_preview_panel(self, parent: ctk.CTkFrame) -> None:
@@ -629,7 +658,7 @@ class MacroApp(ctk.CTk):
         self.current_macro = safe_macro
         self._refresh_saved_macros(selected_name=saved_path.stem, log_result=False)
         self._append_log_line(f"Macro guardada correctamente: {saved_path.name}.")
-        self._set_status("Estado: macro guardada en modo test_log")
+        self._set_status(f"Estado: macro guardada en modo {safe_macro['execution_mode']}")
 
     def _refresh_saved_macros(
         self,
@@ -764,7 +793,7 @@ class MacroApp(ctk.CTk):
                 )
             else:
                 exported_path = self._export_current_macro_to_json(destination_path)
-                self._append_log_line(f"Macro actual exportada en modo test_log: {exported_path}.")
+                self._append_log_line(f"Macro actual exportada en modo {self.current_macro.get('execution_mode', DEFAULT_UI_EXECUTION_MODE)}: {exported_path}.")
         except (OSError, ValueError) as error:
             self._show_error(f"No se pudo exportar el JSON: {error}")
             return
@@ -807,12 +836,12 @@ class MacroApp(ctk.CTk):
         """Convierte macros cargadas/importadas a ``test_log`` antes de usarlas en UI."""
         macro_copy = copy.deepcopy(macro_data)
         original_mode = macro_copy.get("execution_mode")
-        if original_mode != ALLOWED_UI_EXECUTION_MODE:
+        if original_mode != DEFAULT_UI_EXECUTION_MODE:
             self._append_log_line(
                 f"Modo seguro aplicado a {source_label}: execution_mode {original_mode!r} -> 'test_log'."
             )
 
-        macro_copy["execution_mode"] = ALLOWED_UI_EXECUTION_MODE
+        macro_copy["execution_mode"] = DEFAULT_UI_EXECUTION_MODE
         key_selection_mode = macro_copy.get("key_selection_mode")
         if key_selection_mode not in KEY_SELECTION_MODES:
             macro_copy["key_selection_mode"] = "simple"
@@ -821,7 +850,7 @@ class MacroApp(ctk.CTk):
             )
 
         if not validate_macro_data(macro_copy):
-            raise ValueError("La macro cargada no cumple la estructura válida para Fase 10")
+            raise ValueError("La macro cargada no cumple la estructura válida para Fase 22")
 
         return macro_copy
 
@@ -888,6 +917,10 @@ class MacroApp(ctk.CTk):
     def _load_macro_into_controls(self, macro_data: dict[str, Any]) -> None:
         """Copia una macro validada o plantilla hacia los controles de Fase 11."""
         self.actions = copy.deepcopy(macro_data.get("actions", []))
+        execution_mode = macro_data.get("execution_mode", DEFAULT_UI_EXECUTION_MODE)
+        if execution_mode not in ALLOWED_UI_EXECUTION_MODES:
+            execution_mode = DEFAULT_UI_EXECUTION_MODE
+        self.execution_mode_var.set(EXECUTION_MODE_LABELS_BY_VALUE[execution_mode])
         self.key_selection_mode_var.set(macro_data.get("key_selection_mode", "simple"))
         self.initial_delay_var.set(str(float(macro_data.get("initial_delay", 0.0))))
         self.repetitions_var.set(str(int(macro_data.get("repetitions", 1))))
@@ -1235,28 +1268,47 @@ class MacroApp(ctk.CTk):
             "infinite": is_infinite,
             "cooldown_base": self._parse_non_negative_float(self.cooldown_base_var.get(), "cooldown base"),
             "cooldown_variation": self._get_variation_value(self.cooldown_variation_var.get()),
-            "execution_mode": ALLOWED_UI_EXECUTION_MODE,
+            "execution_mode": self._get_selected_execution_mode(),
             "key_selection_mode": self._get_key_selection_mode(),
         }
-        return self._get_safe_test_log_macro(macro_data)
+        return self._get_safe_macro_for_selected_mode(macro_data)
 
-    def _get_safe_test_log_macro(self, macro_data: dict[str, Any]) -> dict[str, Any]:
-        """Bloquea modos peligrosos y valida la macro construida para Fase 10."""
+    def _get_safe_macro_for_selected_mode(self, macro_data: dict[str, Any]) -> dict[str, Any]:
+        """Valida el modo seleccionado y mantiene bloqueado ``test_keys``."""
         macro_copy = copy.deepcopy(macro_data)
         execution_mode = macro_copy.get("execution_mode")
 
         if execution_mode in BLOCKED_EXECUTION_MODES:
-            raise ValueError(
-                f"El modo {execution_mode!r} sigue bloqueado en Fase 10. Solo se permite 'test_log'."
-            )
+            raise ValueError("El modo test_keys sigue bloqueado en Fase 22.")
 
-        macro_copy["execution_mode"] = ALLOWED_UI_EXECUTION_MODE
+        if execution_mode not in ALLOWED_UI_EXECUTION_MODES:
+            raise ValueError("Selecciona test_log o real como modo de ejecución.")
+
         if not validate_macro_data(macro_copy):
             raise ValueError(
                 "La macro no cumple la estructura válida. Revisa acciones, delays, repeticiones y cooldown."
             )
 
         return macro_copy
+
+    def _get_selected_execution_mode(self) -> str:
+        """Devuelve el modo elegido en la UI, usando test_log como respaldo seguro."""
+        return EXECUTION_MODE_VALUES_BY_LABEL.get(
+            self.execution_mode_var.get(),
+            DEFAULT_UI_EXECUTION_MODE,
+        )
+
+    def _on_execution_mode_changed(self, *_args: object) -> None:
+        """Actualiza textos visibles cuando el usuario cambia test_log/real."""
+        if not hasattr(self, "run_button"):
+            return
+
+        if self._get_selected_execution_mode() == EXECUTION_MODE_REAL:
+            self.run_button.configure(text="Ejecutar macro real")
+            self._set_status("Estado: modo real seleccionado; se pedirá confirmación antes de ejecutar")
+        else:
+            self.run_button.configure(text="Ejecutar prueba solo log")
+            self._set_status("Estado: modo test_log seleccionado")
 
     def _get_key_selection_mode(self) -> str:
         """Devuelve el modo de selección activo, limitado a simple/advanced."""
@@ -1356,35 +1408,53 @@ class MacroApp(ctk.CTk):
             f"máx {format_seconds(duration_range['max'])}"
         )
 
-    def _start_test_log_run(self) -> None:
-        """Inicia MacroRunner con la macro editada en un hilo daemon."""
+    def _start_macro_run(self) -> None:
+        """Inicia MacroRunner en test_log o real tras validación y confirmación."""
         if self._is_runner_active():
             self._show_error("Ya hay una prueba en ejecución.")
             return
 
         try:
             safe_macro = self._build_validated_macro_from_controls()
-            if safe_macro.get("execution_mode") != ALLOWED_UI_EXECUTION_MODE:
-                raise ValueError("La Fase 10 solo permite execution_mode='test_log'.")
         except ValueError as error:
             self._show_error(f"No se puede ejecutar la macro: {error}")
+            return
+
+        if safe_macro["execution_mode"] == EXECUTION_MODE_REAL and not self._confirm_real_execution():
+            self._append_log_line("Ejecución real cancelada por el usuario antes de iniciar.")
+            self._set_status("Estado: ejecución real cancelada")
             return
 
         self.current_macro = safe_macro
         self.current_runner = MacroRunner(
             safe_macro,
             log_callback=self._enqueue_runner_event,
-            enable_emergency_listener=False,
+            enable_emergency_listener=True,
         )
         self.runner_thread = threading.Thread(
             target=self._run_macro_safely,
             daemon=True,
-            name="MacroRunnerTestLogUI",
+            name=f"MacroRunnerUI-{safe_macro['execution_mode']}",
         )
         self.runner_thread.start()
 
         self._set_running_state(True)
-        self._append_log_line("Prueba test_log iniciada con la macro editada.")
+        if safe_macro["execution_mode"] == EXECUTION_MODE_REAL:
+            self._append_log_line("Ejecución real iniciada tras confirmación manual.")
+        else:
+            self._append_log_line("Prueba test_log iniciada con la macro editada.")
+
+    def _confirm_real_execution(self) -> bool:
+        """Solicita confirmación explícita antes de presionar teclas reales."""
+        return messagebox.askyesno(
+            "Confirmar ejecución real",
+            "La macro presionará teclas reales de teclado.\n\n"
+            "Antes de continuar, coloca el foco en la ventana correcta.\n"
+            "Puedes detener con el botón 'Detener ahora' o con F9.\n\n"
+            "No uses esta función para evasión, abuso, ocultamiento, bypass "
+            "ni ejecución no autorizada.\n\n"
+            "¿Quieres iniciar la ejecución real ahora?",
+        )
 
     def _run_macro_safely(self) -> None:
         """Ejecuta el runner y transforma errores en eventos visibles para la UI."""
@@ -1399,19 +1469,19 @@ class MacroApp(ctk.CTk):
             self._enqueue_runner_event(
                 {
                     "type": "error",
-                    "message": f"Error durante la prueba: {error}",
+                    "message": f"Error durante la ejecución: {error}",
                     "data": {"error_type": type(error).__name__},
                 }
             )
         finally:
             self._enqueue_runner_event(
-                {"type": "ui_runner_thread_finished", "message": "Hilo de prueba finalizado", "data": {}}
+                {"type": "ui_runner_thread_finished", "message": "Hilo de ejecución finalizado", "data": {}}
             )
 
     def _stop_runner(self) -> None:
         """Solicita detención visual sin depender de F9."""
         if self.current_runner is None or not self._is_runner_active():
-            self._append_log_line("No hay una prueba activa para detener.")
+            self._append_log_line("No hay una macro activa para detener.")
             self._set_running_state(False)
             return
 
@@ -1440,7 +1510,7 @@ class MacroApp(ctk.CTk):
 
         if runner_finished:
             self._set_running_state(False)
-            self._set_status("Estado: prueba finalizada")
+            self._set_status("Estado: ejecución finalizada")
             self.current_runner = None
             self.runner_thread = None
 
@@ -1482,6 +1552,7 @@ class MacroApp(ctk.CTk):
         self.load_template_button.configure(state=state)
         self.preview_button.configure(state=state)
         self.run_button.configure(state=state)
+        self.execution_mode_menu.configure(state=state)
         self.add_action_button.configure(state=state)
         self.update_action_button.configure(state="disabled" if is_running else "normal")
         self.clear_selection_button.configure(state="disabled" if is_running else "normal")
@@ -1500,7 +1571,8 @@ class MacroApp(ctk.CTk):
             self.load_macro_button.configure(state="disabled")
             self.delete_macro_button.configure(state="disabled")
             self.saved_macros_menu.configure(state="disabled")
-            self._set_status("Estado: prueba test_log en ejecución")
+            mode = self.current_macro.get("execution_mode", DEFAULT_UI_EXECUTION_MODE)
+            self._set_status(f"Estado: macro en ejecución ({mode})")
         else:
             self.saved_macros_menu.configure(state="normal")
             self._sync_saved_macro_buttons_state()

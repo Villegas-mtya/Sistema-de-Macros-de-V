@@ -7,14 +7,14 @@ Este documento describe el estado actual de **Sistema de Macros de V**, las fase
 - **Versión actual:** `v0.1.0-rc1`.
 - **Tipo de versión:** release candidate segura publicada manualmente como pre-release.
 - **Distribución actual:** artifact Windows generado por el workflow manual `release-build` y adjuntado manualmente a la pre-release.
-- **Modo de ejecución permitido:** únicamente `test_log`.
-- **Modos bloqueados:** `real` y `test_keys` siguen bloqueados.
-- **Ejecución real de teclas:** no está implementada ni autorizada.
+- **Modos de ejecución permitidos:** `test_log` por defecto y `real` solo con selección explícita y confirmación manual.
+- **Modo bloqueado:** `test_keys` sigue bloqueado/no implementado.
+- **Ejecución real de teclas:** implementada de forma controlada para teclado en Fase 22, sin grabación ni mouse.
 - **Grabación:** no existe grabación de macros ni captura de teclado para construir acciones.
 - **Mouse:** no hay soporte para mouse, clicks ni movimientos.
-- **Alcance de Fase 21:** documentación pública del roadmap y del estado del proyecto, sin cambios funcionales.
+- **Alcance de Fase 22:** ejecución real controlada de teclado, selector `test_log`/`real`, confirmación manual y pruebas con controlador falso.
 
-La aplicación actual permite construir macros manuales, validarlas, guardarlas como JSON, previsualizarlas y recorrerlas en una simulación segura que solo registra eventos. Esta simulación no presiona teclas reales.
+La aplicación actual permite construir macros manuales, validarlas, guardarlas como JSON, previsualizarlas y ejecutarlas en `test_log` o en `real`. `test_log` solo registra eventos; `real` presiona teclas reales de teclado después de selección explícita y confirmación visual.
 
 ## Completado
 
@@ -26,7 +26,7 @@ Las fases completadas dejaron una base segura, verificable y documentada:
 - Validación de teclas simples y avanzadas antes de guardar o ejecutar una macro.
 - Almacenamiento JSON de macros con carga, listado, borrado, importación y exportación.
 - Previsualización declarativa de macros antes de ejecutar, incluyendo repeticiones, delays y duración estimada.
-- Runner seguro limitado a `test_log`, sin usar controladores para presionar teclas reales.
+- Runner con `test_log` seguro y modo `real` controlado mediante controlador de teclado inyectable/testeable.
 - Parada de emergencia F9 limitada al runner seguro.
 - UI manual para construir macros sin grabación automática.
 - Edición visual de acciones existentes.
@@ -58,15 +58,15 @@ Las siguientes ideas pueden evaluarse en futuras fases siempre que no cambien el
 - Mejorar la trazabilidad documental entre README, changelog, checklist, seguridad y roadmap.
 - Revisar ejemplos de reportes reproducibles para facilitar feedback público.
 
-Estas tareas son aceptables solo si conservan el límite principal: la aplicación sigue en `test_log` y no presiona teclas reales.
+Estas tareas son aceptables solo si conservan el límite principal: `test_log` sigue disponible por defecto y `real` requiere selección explícita y confirmación manual.
 
 ## Fuera del alcance actual
 
 No está implementado ni autorizado:
 
-- Ejecución real de teclas.
-- Modo `real`.
 - Modo `test_keys`.
+- Ejecución real sin confirmación visual.
+- Ejecución automática o no autorizada.
 - Grabación de macros.
 - Captura de teclado para construir acciones automáticamente.
 - Soporte de mouse.
@@ -84,9 +84,9 @@ Cualquier propuesta que dependa de estos puntos debe rechazarse para el estado a
 
 Los límites de seguridad vigentes son obligatorios para revisiones, issues, pull requests y futuras fases:
 
-- Mantener `execution_mode = "test_log"` como único modo permitido por la UI y el runner.
-- Mantener bloqueados `real` y `test_keys`.
-- No agregar llamadas que presionen teclas reales.
+- Mantener `execution_mode = "test_log"` como modo por defecto y `real` solo con confirmación manual.
+- Mantener bloqueado `test_keys`.
+- Permitir llamadas que presionen teclas reales únicamente dentro de `app/macro_runner.py`.
 - No agregar grabación ni captura global para construir macros.
 - No agregar mouse, clicks ni movimientos.
 - No agregar automatización de publicación de releases sin revisión manual.
@@ -108,6 +108,6 @@ Una fase futura solo debería aceptarse si cumple todos estos criterios:
 9. Evita dependencias nuevas salvo justificación explícita y revisión de impacto.
 10. Permite una revisión clara del diff, sin mezclar cambios funcionales con cambios documentales no relacionados.
 
-## Nota para Fase 22
+## Nota para Fase 23
 
-Fase 21 no autoriza Fase 22. Antes de avanzar se necesita una nueva especificación explícita que indique objetivo, alcance, archivos permitidos, pruebas esperadas y revisión de seguridad.
+Fase 22 no autoriza Fase 23. Antes de avanzar se necesita una nueva especificación explícita que indique objetivo, alcance, archivos permitidos, pruebas esperadas y revisión de seguridad.

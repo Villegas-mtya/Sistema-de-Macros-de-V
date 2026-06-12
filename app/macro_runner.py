@@ -1,16 +1,16 @@
-"""Runner de macros en modo prueba solo log con parada de emergencia.
+"""Runner de macros con modo prueba y ejecución real controlada.
 
-La Fase 7 mantiene el ejecutor seguro de Fase 6 y agrega parada de emergencia
-sin habilitar ejecución real de teclas. El runner respeta retardos,
-variaciones, repeticiones y cooldown, pero solo emite eventos de log en memoria
-o hacia un callback externo.
+La Fase 22 conserva el modo seguro ``test_log`` y habilita ``real`` solo cuando
+la UI o el llamador lo solicitan explícitamente. El runner respeta retardos,
+variaciones, repeticiones, cooldown y paradas seguras, sin agregar grabación,
+mouse, clicks ni movimientos.
 
 Límites deliberados de esta fase:
-- No usa ``pynput.Controller``.
-- No presiona teclas reales.
-- No captura teclas para grabar acciones.
+- ``test_log`` no crea controlador ni presiona teclas reales.
+- ``real`` usa únicamente ``pynput.keyboard.Controller`` para teclado.
+- ``test_keys`` sigue bloqueado.
+- No captura teclas para construir acciones ni graba macros.
 - La única escucha global permitida es F9 para solicitar detención.
-- No implementa botón visual ``Detener ahora`` ni integración con ``app/ui.py``.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from app.key_mapper import get_key_display_name
+from app.key_mapper import get_key_display_name, map_key
 from app.validators import validate_macro_data
 
 EXECUTION_MODE_REAL = "real"
@@ -53,6 +53,7 @@ LogCallback = Callable[[RunnerEvent], None]
 StopCallback = Callable[[], bool]
 SleepFunction = Callable[[float], None]
 EmergencyCallback = Callable[[dict[str, Any]], None]
+KeyboardControllerFactory = Callable[[], Any]
 
 
 class EmergencyStopController:
@@ -167,6 +168,7 @@ class MacroRunner:
         emergency_stop_controller: EmergencyStopController | None = None,
         enable_emergency_listener: bool = False,
         stop_check_interval: float = DEFAULT_STOP_CHECK_INTERVAL,
+        keyboard_controller_factory: KeyboardControllerFactory | None = None,
     ) -> None:
         self.macro_data = macro_data
         self.log_callback = log_callback
@@ -182,6 +184,7 @@ class MacroRunner:
             stop_check_interval,
             "stop_check_interval",
         )
+        self.keyboard_controller_factory = keyboard_controller_factory
 
         self.events: list[RunnerEvent] = []
         self._stop_requested = False
@@ -258,16 +261,17 @@ class MacroRunner:
         return self._thread
 
     def run(self) -> list[RunnerEvent]:
-        """Recorre la macro validada en modo ``test_log`` y devuelve eventos.
+        """Recorre la macro validada en ``test_log`` o ``real`` y devuelve eventos.
 
         El algoritmo es deliberadamente narrativo:
         1. Validar la estructura y el modo de ejecución.
-        2. Iniciar opcionalmente el listener global F9, si fue solicitado.
-        3. Registrar inicio y revisar detención antes del delay inicial.
-        4. Dormir en tramos cortos para detectar stop durante delays largos.
-        5. Recorrer repeticiones y acciones simuladas sin emitir teclas reales.
-        6. Aplicar cooldown entre repeticiones.
-        7. Finalizar correctamente o registrar parada segura.
+        2. Crear un controlador de teclado solo si el modo es ``real``.
+        3. Iniciar opcionalmente el listener global F9, si fue solicitado.
+        4. Registrar inicio y revisar detención antes del delay inicial.
+        5. Dormir en tramos cortos para detectar stop durante delays largos.
+        6. Recorrer repeticiones y acciones, simulando o presionando teclado según modo.
+        7. Aplicar cooldown entre repeticiones.
+        8. Finalizar correctamente o registrar parada segura.
         """
         listener_started_by_run = False
 
@@ -275,20 +279,13 @@ class MacroRunner:
             self._validate_before_run()
             macro = self.macro_data
             assert isinstance(macro, dict)
+            execution_mode = macro["execution_mode"]
+            keyboard_controller = self._create_keyboard_controller_if_needed(execution_mode)
 
             if self.enable_emergency_listener:
                 listener_started_by_run = self.start_emergency_listener()
 
-            self._emit(
-                "macro_started",
-                "Iniciando macro en modo prueba: solo log",
-                {
-                    "execution_mode": macro["execution_mode"],
-                    "infinite": macro["infinite"],
-                    "repetitions": macro["repetitions"],
-                    "actions_count": len(macro["actions"]),
-                },
-            )
+            self._emit_start_event(macro)
 
             if self._stop_if_requested("Detención solicitada antes del delay inicial"):
                 return self._finish_stopped()
@@ -317,20 +314,23 @@ class MacroRunner:
                 )
 
                 for action_index, action in enumerate(macro["actions"], start=1):
+                    action_context = {
+                        "repetition": repetition_number,
+                        "action_index": action_index,
+                    }
                     if self._stop_if_requested(
-                        "Detención solicitada antes de ejecutar la acción simulada",
-                        {"repetition": repetition_number, "action_index": action_index},
+                        "Detención solicitada antes de ejecutar la acción",
+                        action_context,
                     ):
                         return self._finish_stopped()
 
-                    if self._simulate_action(action, action_index, repetition_number):
-                        self._stop_if_requested(
-                            "Detención solicitada durante el delay de acción",
-                            {
-                                "repetition": repetition_number,
-                                "action_index": action_index,
-                            },
-                        )
+                    if self._run_action(
+                        action,
+                        action_index,
+                        repetition_number,
+                        execution_mode,
+                        keyboard_controller,
+                    ):
                         return self._finish_stopped()
 
                 if self._must_run_cooldown(macro, repetition_number):
@@ -378,7 +378,7 @@ class MacroRunner:
                 self.stop_emergency_listener()
 
     def _validate_before_run(self) -> None:
-        """Valida estructura y bloquea modos no seguros para Fase 7."""
+        """Valida estructura y permite solo ``test_log`` o ``real`` en Fase 22."""
         if not validate_macro_data(self.macro_data):
             raise ValueError("La macro no cumple la estructura válida para ejecutarse")
 
@@ -386,33 +386,102 @@ class MacroRunner:
         assert isinstance(macro, dict)
         execution_mode = macro["execution_mode"]
 
-        if execution_mode == EXECUTION_MODE_TEST_LOG:
+        if execution_mode in {EXECUTION_MODE_TEST_LOG, EXECUTION_MODE_REAL}:
             return
-
-        if execution_mode == EXECUTION_MODE_REAL:
-            raise ValueError(
-                "El modo real todavía no está permitido: falta la ejecución segura "
-                "con controles completos antes de presionar teclas reales"
-            )
 
         if execution_mode == EXECUTION_MODE_TEST_KEYS:
             raise ValueError(
-                "El modo test_keys todavía no está permitido porque implicaría "
-                "presionar teclas; Fase 7 solo registra logs"
+                "El modo test_keys sigue bloqueado porque implicaría presionar "
+                "teclas sin ser la ejecución real confirmada de Fase 22"
             )
 
-        raise ValueError(f"Modo de ejecución no soportado en Fase 7: {execution_mode!r}")
+        raise ValueError(f"Modo de ejecución no soportado en Fase 22: {execution_mode!r}")
 
-    def _simulate_action(
+    def _create_keyboard_controller_if_needed(self, execution_mode: str) -> Any | None:
+        """Crea ``Controller`` solo para modo real, manteniendo imports diferidos."""
+        if execution_mode != EXECUTION_MODE_REAL:
+            return None
+
+        self._emit(
+            "real_execution_started",
+            "Ejecución real de teclado iniciada",
+            {"execution_mode": execution_mode},
+        )
+
+        if self.keyboard_controller_factory is not None:
+            return self.keyboard_controller_factory()
+
+        from pynput.keyboard import Controller
+
+        return Controller()
+
+    def _emit_start_event(self, macro: dict[str, Any]) -> None:
+        """Registra el inicio general con un mensaje específico por modo."""
+        execution_mode = macro["execution_mode"]
+        if execution_mode == EXECUTION_MODE_REAL:
+            message = "Iniciando macro en modo real controlado"
+        else:
+            message = "Iniciando macro en modo prueba: solo log"
+
+        self._emit(
+            "macro_started",
+            message,
+            {
+                "execution_mode": execution_mode,
+                "infinite": macro["infinite"],
+                "repetitions": macro["repetitions"],
+                "actions_count": len(macro["actions"]),
+            },
+        )
+
+    def _run_action(
         self,
         action: dict[str, Any],
         action_index: int,
         repetition_number: int,
+        execution_mode: str,
+        keyboard_controller: Any | None,
     ) -> bool:
-        """Registra una acción simulada y espera su delay aleatorizado.
+        """Ejecuta o simula una acción y luego espera su delay interrumpible."""
+        if execution_mode == EXECUTION_MODE_REAL:
+            self._press_real_key(action, action_index, repetition_number, keyboard_controller)
+        else:
+            self._simulate_action_without_delay(action, action_index, repetition_number)
 
-        Devuelve ``True`` si el delay fue interrumpido por una solicitud de stop.
-        """
+        action_context = {"repetition": repetition_number, "action_index": action_index}
+        if self._stop_if_requested(
+            "Detención solicitada después de ejecutar la acción",
+            action_context,
+        ):
+            return True
+
+        action_delay = get_randomized_delay(action["base_delay"], action["variation_mode"])
+        if self._sleep_and_log_delay(
+            event_type="action_delay",
+            message=f"Esperando delay de acción {action_index}",
+            delay_seconds=action_delay,
+            data={
+                "repetition": repetition_number,
+                "action_index": action_index,
+                "base_delay": float(action["base_delay"]),
+                "variation_mode": action["variation_mode"],
+            },
+        ):
+            self._stop_if_requested(
+                "Detención solicitada durante el delay de acción",
+                action_context,
+            )
+            return True
+
+        return False
+
+    def _simulate_action_without_delay(
+        self,
+        action: dict[str, Any],
+        action_index: int,
+        repetition_number: int,
+    ) -> None:
+        """Registra una acción simulada sin presionar teclas reales."""
         key_display_name = get_key_display_name(action["key"]) or str(action["key"])
         self._emit(
             "action",
@@ -425,18 +494,33 @@ class MacroRunner:
             },
         )
 
-        action_delay = get_randomized_delay(action["base_delay"], action["variation_mode"])
-        return self._sleep_and_log_delay(
-            event_type="action_delay",
-            message=f"Esperando delay de acción {action_index}",
-            delay_seconds=action_delay,
-            data={
-                "repetition": repetition_number,
-                "action_index": action_index,
-                "base_delay": float(action["base_delay"]),
-                "variation_mode": action["variation_mode"],
-            },
-        )
+    def _press_real_key(
+        self,
+        action: dict[str, Any],
+        action_index: int,
+        repetition_number: int,
+        keyboard_controller: Any | None,
+    ) -> None:
+        """Presiona y suelta una tecla real usando un controlador inyectable."""
+        if keyboard_controller is None:
+            raise ValueError("No hay controlador de teclado disponible para modo real")
+
+        key_display_name = get_key_display_name(action["key"]) or str(action["key"])
+        mapped_key = map_key(action["key"])
+        if mapped_key is None:
+            raise ValueError(f"No se pudo mapear la tecla para modo real: {action['key']!r}")
+
+        event_data = {
+            "repetition": repetition_number,
+            "action_index": action_index,
+            "key": action["key"],
+            "key_display_name": key_display_name,
+        }
+        keyboard_controller.press(mapped_key)
+        self._emit("real_key_pressed", f"Tecla real presionada: {key_display_name}", event_data)
+
+        keyboard_controller.release(mapped_key)
+        self._emit("real_action_completed", f"Tecla real liberada: {key_display_name}", event_data)
 
     def _sleep_and_log_delay(
         self,

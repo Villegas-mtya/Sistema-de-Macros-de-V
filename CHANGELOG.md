@@ -4,20 +4,29 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 
 ## Unreleased
 
+### Fase 22
+
+- Agregada ejecución real controlada de teclado con `execution_mode = "real"`, usando `pynput.keyboard.Controller` solo dentro del runner y solo cuando el usuario selecciona explícitamente ese modo.
+- Agregado selector visual de modo `test_log` / `real` en la UI; `test_log` sigue siendo el modo por defecto para probar sin presionar teclas.
+- Agregada confirmación manual previa para modo real, con advertencias sobre foco de ventana, parada con **Detener ahora** o F9, y prohibición de evasión, abuso o ejecución no autorizada.
+- Agregadas pruebas unitarias con controlador falso para verificar `press`/`release` sin presionar teclas reales durante tests.
+- Actualizadas pruebas estáticas para permitir `Controller`, `.press()` y `.release()` únicamente en `app/macro_runner.py`, manteniéndolos fuera de la UI y de módulos no autorizados.
+- `test_keys` sigue bloqueado/no implementado. No se agrega grabación, captura de teclado para construir acciones, mouse, clicks ni movimientos.
+
 ### Mantenimiento
 
 - Agregado `ROADMAP.md` con el estado público del proyecto, fases completadas, pendientes seguros, fuera del alcance, límites de seguridad y criterios para futuras fases.
 - Actualizado `README.md` con enlace al roadmap y resumen de Fase 21.
-- Sin cambios funcionales en Fase 21: la aplicación sigue limitada a `test_log` y mantiene bloqueados `real`, `test_keys`, ejecución real, grabación, mouse, clicks y movimientos.
+- Fase 21 quedó como base documental previa; Fase 22 cambia el comportamiento solo para permitir ejecución real controlada de teclado con confirmación explícita.
 - Agregado `docs/USER_GUIDE.md` con guía de usuario final, primer uso, uso desde Python, uso desde `.exe`, operaciones de macros y límites de `test_log`.
 - Agregado `docs/TROUBLESHOOTING.md` con solución de problemas frecuentes para dependencias, apertura, artifact, JSON, previsualización, prueba solo log, **Detener ahora** y reportes.
 - Actualizado `README.md` con enlaces a la documentación de usuario final, solución de problemas, seguridad, changelog y checklist de release candidate.
 - Corregidas referencias documentales obsoletas sobre Fase 19 pendiente; Fase 19 ya está integrada.
-- Sin cambios funcionales en Fase 20: la aplicación sigue limitada a `test_log` y mantiene bloqueados `real`, `test_keys`, ejecución real, grabación, mouse, clicks y movimientos.
+- Fase 20 se conserva como antecedente documental: en esa fase la aplicación seguía limitada a `test_log`; Fase 22 habilita únicamente `real` controlado y mantiene fuera `test_keys`, grabación, mouse, clicks y movimientos.
 - Agregado `SECURITY.md` con la política de seguridad, versiones soportadas y límites para reportes.
 - Agregadas plantillas de issues para bugs, feedback de release candidate y reportes de seguridad.
 - Agregada plantilla de pull request con checklist de alcance seguro y validaciones locales.
-- Sin cambios funcionales en la aplicación: `real`, `test_keys`, ejecución real, grabación, mouse, clicks y movimientos siguen fuera de alcance.
+- La ejecución real de teclado queda limitada a Fase 22; `test_keys`, grabación, mouse, clicks y movimientos siguen fuera de alcance.
 
 ## v0.1.0-rc1
 

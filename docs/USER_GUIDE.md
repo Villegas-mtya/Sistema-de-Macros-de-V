@@ -6,21 +6,22 @@ Esta guía explica cómo instalar, abrir y usar **Sistema de Macros de V** en la
 
 Sistema de Macros de V es una aplicación de escritorio en Python para construir macros manuales de teclado desde una interfaz gráfica.
 
-La app permite definir una lista de acciones, guardar esa macro en JSON, volver a cargarla, importarla/exportarla y ejecutar una **prueba solo log** para revisar el orden y los tiempos declarados sin presionar teclas reales.
+La app permite definir una lista de acciones, guardar esa macro en JSON, volver a cargarla, importarla/exportarla, ejecutar una **prueba solo log** sin presionar teclas y, desde Fase 22, ejecutar teclas reales de forma controlada cuando el usuario selecciona `real` y confirma manualmente.
 
 ## 2. Estado actual de la release candidate
 
 `v0.1.0-rc1` es una release candidate pública/manual orientada a revisión, feedback y validación segura.
 
-El comportamiento funcional sigue limitado a:
+El comportamiento funcional incluye:
 
 - Construcción manual de macros.
 - Validación de datos.
 - Previsualización declarativa.
 - Guardado/carga/importación/exportación de JSON.
 - Ejecución segura `test_log`, que escribe eventos en el log visible sin pulsar teclas reales.
+- Ejecución real controlada `real`, que presiona teclas reales solo tras selección explícita y confirmación visual.
 
-No es una versión con automatización real. La app mantiene bloqueados `real` y `test_keys`.
+`test_log` es el modo por defecto/recomendado para probar. `test_keys` sigue bloqueado. No hay grabación, captura de teclado para construir acciones, mouse, clicks ni movimientos.
 
 ## 3. Requisitos mínimos
 
@@ -55,7 +56,7 @@ Desde PowerShell, en la raíz del proyecto:
 python main.py
 ```
 
-La ventana debe mostrar el constructor manual, la lista de acciones, los botones de guardado/carga/importación/exportación, la previsualización, el log visible y los controles de prueba `test_log`.
+La ventana debe mostrar el constructor manual, la lista de acciones, los botones de guardado/carga/importación/exportación, la previsualización, el log visible y el selector de modo `test_log`/`real`, la confirmación previa para `real` y los controles de ejecución.
 
 ## 6. Abrir la app desde el `.exe`
 
@@ -167,7 +168,7 @@ Si una macro cargada tuviera otro modo, la UI debe forzarla visualmente a `test_
 3. La app valida la estructura.
 4. Si el JSON es válido, se carga en el constructor en modo seguro `test_log`.
 
-Importar JSON no habilita `real`, `test_keys`, ejecución real ni grabación.
+Importar JSON carga la macro en `test_log` por seguridad. Para usar `real`, cámbialo manualmente en la UI y acepta la confirmación. `test_keys` y la grabación siguen bloqueados.
 
 ## 17. Exportar JSON
 
@@ -251,3 +252,15 @@ La release candidate segura no hace lo siguiente:
 - No crea tags, releases ni artifacts automáticamente.
 
 Si necesitas reportar un problema, usa las plantillas del repositorio y mantén el reporte dentro de estos límites seguros.
+
+
+## Ejecución real segura en Fase 22
+
+1. Primero prueba la macro en **Prueba solo log / `test_log`** y revisa el orden, delays, repeticiones y cooldown en el log.
+2. Si el resultado es correcto, cambia el selector a **Ejecución real / `real`**.
+3. Coloca el foco en la ventana que debe recibir las teclas.
+4. Pulsa el botón de ejecución y lee la confirmación completa.
+5. Acepta solo si entiendes que se presionarán teclas reales.
+6. Durante la ejecución puedes usar **Detener ahora** o F9.
+
+No uses el modo real para evasión, abuso, ocultamiento, bypass ni ejecución no autorizada.
