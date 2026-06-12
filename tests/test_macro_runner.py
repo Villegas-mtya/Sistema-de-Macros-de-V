@@ -6,6 +6,7 @@ import copy
 import unittest
 from typing import Any
 
+from app.key_mapper import map_key
 from app.macro_runner import MacroRunner
 
 
@@ -30,12 +31,16 @@ class FakeKeyboardDevice:
 
     def __init__(self) -> None:
         self.calls: list[tuple[str, Any]] = []
+        self.pressed_keys: list[Any] = []
+        self.released_keys: list[Any] = []
 
     def press(self, key: Any) -> None:
         self.calls.append(("press", key))
+        self.pressed_keys.append(key)
 
     def release(self, key: Any) -> None:
         self.calls.append(("release", key))
+        self.released_keys.append(key)
 
 
 def event_types(events: list[dict[str, object]]) -> list[str]:
@@ -125,9 +130,8 @@ class MacroRunnerTests(unittest.TestCase):
 
         runner.run()
 
-        pressed_keys = [key for action, key in fake_controller.calls if action == "press"]
-        self.assertEqual("a", pressed_keys[0])
-        self.assertEqual("enter", getattr(pressed_keys[1], "value", None))
+        self.assertEqual(["a", map_key("enter")], fake_controller.pressed_keys)
+        self.assertEqual(fake_controller.pressed_keys, fake_controller.released_keys)
 
     def test_real_execution_can_stop_before_first_action(self) -> None:
         macro = copy.deepcopy(BASE_MACRO)
