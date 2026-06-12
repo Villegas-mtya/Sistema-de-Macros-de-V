@@ -13,7 +13,7 @@ from app.key_mapper import validate_key
 
 VALID_VARIATION_MODES = {"fixed", "light", "medium", "high"}
 VALID_KEY_SELECTION_MODES = {"simple", "advanced"}
-VALID_EXECUTION_MODES = {"real", "test_log", "test_keys"}
+VALID_EXECUTION_MODES = {"real", "test_log"}
 
 REQUIRED_ACTION_FIELDS = {"key", "base_delay", "variation_mode"}
 REQUIRED_MACRO_FIELDS = {
@@ -55,7 +55,7 @@ def is_valid_variation_mode(value: object) -> bool:
 
 
 def is_valid_execution_mode(value: object) -> bool:
-    """Valida los modos declarativos permitidos para futuras ejecuciones."""
+    """Valida los modos ejecutables permitidos en Fase 22."""
     return isinstance(value, str) and value in VALID_EXECUTION_MODES
 
 
@@ -99,8 +99,8 @@ def validate_macro_data(macro_data: object) -> bool:
 
     La validación es intencionalmente básica y estricta en los campos requeridos:
     confirma que la macro pueda guardarse, cargarse, importarse o exportarse como
-    JSON del proyecto. No valida reglas de ejecución porque Fase 4 no ejecuta
-    macros.
+    JSON del proyecto. Valida también que el modo de ejecución pertenezca a Fase 22:
+    ``test_log`` o ``real``. ``test_keys`` sigue bloqueado.
     """
     if not isinstance(macro_data, Mapping):
         return False

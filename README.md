@@ -4,7 +4,7 @@ Sistema de Macros de V será una aplicación de escritorio en Python para constr
 
 ## Alcance actual
 
-El proyecto ya integra las Fases 1 a 21 sobre una base segura y progresiva:
+El proyecto ya integra las Fases 1 a 22 sobre una base segura y progresiva:
 
 - **Fase 4**: almacenamiento, carga, listado, borrado, importación y exportación de macros en JSON.
 - **Fase 5**: previsualización declarativa y estimación de duración antes de ejecutar.
@@ -24,10 +24,11 @@ El proyecto ya integra las Fases 1 a 21 sobre una base segura y progresiva:
 - **Fase 19**: preparación pública del repositorio para feedback, bugs reproducibles, reportes de seguridad y contribuciones dentro del alcance seguro.
 - **Fase 20**: guía de usuario final, primer uso y solución de problemas para `v0.1.0-rc1`, sin cambios funcionales.
 - **Fase 21**: roadmap público y estado del proyecto, con pendientes seguros, fuera del alcance y criterios para futuras fases, sin cambios funcionales.
+- **Fase 22**: ejecución real controlada de teclado cuando el usuario selecciona explícitamente `real`, confirma manualmente la ejecución y conserva `test_log` como modo seguro por defecto.
 
-La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración, recorrer una macro validada sin presionar teclas reales y mostrar el flujo desde una UI inicial de CustomTkinter.
+La aplicación ya puede reconocer teclas en modo simple y avanzado, convertirlas a valores internos estables, validar macros guardables, previsualizar duración, recorrer una macro validada en `test_log` sin presionar teclas reales o ejecutarla en modo `real` controlado, y mostrar el flujo desde una UI inicial de CustomTkinter.
 
-Por seguridad, la ejecución real de teclas todavía no está implementada. Los modos `real` y `test_keys` se rechazan: Fase 21 sigue permitiendo solo simulaciones `test_log` desde la UI y toda macro cargada o importada se fuerza visualmente a `execution_mode = "test_log"`. El botón **Detener ahora** llama a `runner.stop()` sin depender de F9.
+Por seguridad, `test_log` sigue siendo el modo por defecto y recomendado para probar. Desde Fase 22 existe ejecución real controlada de teclado solo cuando el usuario cambia explícitamente a `execution_mode = "real"` y acepta una confirmación visual. El modo `test_keys` sigue bloqueado. Toda macro cargada o importada se abre visualmente en `test_log` por seguridad, pero la UI permite cambiar manualmente a `real`. El botón **Detener ahora** llama a `runner.stop()` y F9 se mantiene como parada de emergencia limitada.
 
 ## Lo que esta aplicación no hace
 
@@ -64,19 +65,36 @@ python main.py
 - [Checklist de release candidate](RELEASE_CHECKLIST.md): validaciones manuales antes de etiquetar, publicar o distribuir builds.
 
 
+
+## Fase 22: ejecución real controlada de teclado
+
+La Fase 22 corrige el bloqueo funcional de las fases anteriores sin avanzar a grabación ni mouse. La UI permite elegir entre:
+
+- **Prueba solo log / `test_log`**: modo por defecto; recorre acciones, delays, repeticiones y cooldown sin crear `Controller`, sin `press` y sin `release`.
+- **Ejecución real / `real`**: presiona y suelta teclas reales de teclado con `pynput.keyboard.Controller` dentro de `app/macro_runner.py`, después de una confirmación manual clara.
+
+Antes de iniciar `real`, la app advierte que la macro presionará teclas reales, que el usuario debe colocar el foco en la ventana correcta, que puede detener con **Detener ahora** o F9, y que no debe usarse para evasión, abuso, ocultamiento, bypass ni ejecución no autorizada.
+
+Límites que siguen vigentes:
+
+- `test_keys` sigue bloqueado/no implementado.
+- No hay grabación de macros.
+- No hay captura de teclado para construir acciones.
+- No hay mouse, clicks ni movimientos.
+- No hay ejecución automática al iniciar la app.
+
 ## Fase 21: roadmap público y estado del proyecto
 
 La Fase 21 agrega `ROADMAP.md` para documentar el estado actual del proyecto, las fases completadas, los pendientes seguros, lo que queda fuera del alcance y los criterios mínimos para evaluar futuras fases.
 
-Esta fase no cambia el comportamiento funcional de la aplicación:
+Esta fase fue documental sobre la base previa a Fase 22:
 
-- `real` sigue bloqueado.
+- En Fase 21, la app seguía limitada a `execution_mode = "test_log"`.
+- En Fase 22, `real` queda disponible solo como ejecución real controlada con confirmación manual.
 - `test_keys` sigue bloqueado.
-- La app sigue limitada a `execution_mode = "test_log"`.
-- No se agrega ejecución real de teclas.
 - No se agrega grabación.
 - No se agrega mouse, clicks ni movimientos.
-- No se avanza a Fase 22 sin una especificación nueva y aprobación explícita.
+- No se avanza a Fase 23 sin una especificación nueva y aprobación explícita.
 
 ## Fase 20: guía de usuario final y solución de problemas
 
@@ -84,9 +102,9 @@ La Fase 20 agrega documentación orientada a usuarios finales de `v0.1.0-rc1`: g
 
 Esta fase no cambia el comportamiento funcional de la aplicación:
 
-- `real` sigue bloqueado.
+- En esta fase histórica, `real` seguía bloqueado; Fase 22 lo habilita solo con confirmación manual.
 - `test_keys` sigue bloqueado.
-- La app sigue limitada a `execution_mode = "test_log"`.
+- En esta fase histórica, la app seguía limitada a `execution_mode = "test_log"`; Fase 22 agrega `real` controlado.
 - No se agrega ejecución real de teclas.
 - No se agrega grabación.
 - No se agrega mouse, clicks ni movimientos.
@@ -109,7 +127,7 @@ La Fase 18 prepara la documentación mínima para publicar manualmente una relea
 - El artifact descargable se genera ejecutando manualmente el workflow **Build manual de release candidate** (`release-build`) desde GitHub Actions.
 - El tag `v0.1.0-rc1` y la GitHub Release se crean manualmente después de validar CI, build y artifact.
 - No hay publicación automática de releases, no hay creación automática de tags y no se adjuntan artifacts automáticamente a una release.
-- Los modos `real` y `test_keys` siguen bloqueados; la aplicación continúa limitada a `execution_mode = "test_log"`.
+- `real` está disponible solo como modo controlado con confirmación manual; `test_keys` sigue bloqueado. `test_log` continúa como modo por defecto para validar flujo sin presionar teclas.
 
 Comandos manuales sugeridos para el tag, solo después de completar la checklist de release:
 
@@ -121,7 +139,7 @@ git push origin v0.1.0-rc1
 
 ## Guía rápida de uso seguro
 
-Esta guía resume el flujo recomendado para usar y revisar la aplicación en la release candidate `v0.1.0-rc1`. No cambia el comportamiento funcional: la app continúa limitada a `execution_mode = "test_log"`, sin ejecución real de teclas, sin `test_keys`, sin grabación, sin mouse, sin clicks y sin movimientos.
+Esta guía resume el flujo recomendado para usar y revisar la aplicación. Desde Fase 22, `test_log` sigue siendo el modo por defecto para probar sin teclas reales y `real` permite ejecución real controlada de teclado solo con selección explícita y confirmación manual. `test_keys`, grabación, mouse, clicks y movimientos siguen fuera de alcance.
 
 ### Instalación de dependencias
 
@@ -149,23 +167,24 @@ Al abrir la ventana, revisa el constructor manual, la lista de acciones, la prev
 6. Usar **Guardar macro** para persistir la macro en JSON dentro de la carpeta de usuario.
 7. Usar **Cargar**, **Eliminar**, **Importar JSON** o **Exportar JSON** para revisar el flujo de almacenamiento.
 8. Usar **Ejecutar prueba solo log** para simular la macro sin presionar teclas reales.
-9. Usar **Detener ahora** durante una espera para validar que el runner recibe `runner.stop()` y se detiene en el siguiente punto seguro.
+9. Si necesitas ejecución real, cambiar manualmente a **Ejecución real / real**, colocar el foco en la ventana correcta y aceptar la confirmación visual.
+10. Usar **Detener ahora** o F9 durante una espera para validar que el runner se detiene en el siguiente punto seguro.
 
 ### Guardado, carga, importación y exportación
 
 - Las macros guardadas por la UI se almacenan como JSON en la carpeta de usuario documentada en la sección **Rutas de usuario**.
-- Las macros cargadas o importadas se fuerzan visualmente a `execution_mode = "test_log"` antes de usarse desde la UI.
-- Importar un JSON externo no habilita ejecución real ni `test_keys`.
+- Las macros cargadas o importadas se abren visualmente en `execution_mode = "test_log"` antes de usarse desde la UI.
+- Importar un JSON externo no inicia ejecución real; para usar `real` hay que cambiarlo manualmente y aceptar la confirmación. `test_keys` sigue bloqueado.
 - Exportar una macro escribe un JSON para revisión o respaldo, pero no crea ejecutables ni artefactos de build.
 
-### Previsualización y ejecución `test_log`
+### Previsualización, `test_log` y modo `real`
 
-La previsualización muestra datos declarativos de la macro: número de acciones, repeticiones, modo de ejecución, delays, variaciones y duración estimada. La ejecución `test_log` solo produce eventos legibles en el log visible; no llama a pulsaciones reales.
+La previsualización muestra datos declarativos de la macro: número de acciones, repeticiones, modo de ejecución, delays, variaciones y duración estimada. La ejecución `test_log` solo produce eventos legibles en el log visible; no llama a pulsaciones reales. El modo `real` presiona teclas reales de teclado únicamente después de selección explícita y confirmación manual.
 
 ### Límites de seguridad vigentes
 
-- Solo se permite `execution_mode = "test_log"` desde la UI y el runner.
-- `execution_mode = "real"` sigue bloqueado.
+- `execution_mode = "test_log"` sigue siendo el modo por defecto/recomendado.
+- `execution_mode = "real"` requiere selección explícita y confirmación manual.
 - `execution_mode = "test_keys"` sigue bloqueado.
 - No hay grabación de macros.
 - No hay captura de teclado para construir acciones.
@@ -189,7 +208,7 @@ python -m unittest discover -s tests
 Ejecutar verificación estática de seguridad:
 
 ```powershell
-python -c "from pathlib import Path; text=Path('app/ui.py').read_text(encoding='utf-8') + Path('app/macro_runner.py').read_text(encoding='utf-8'); forbidden=['Controller(', '.press(', '.release(']; print(all(item not in text for item in forbidden))"
+python -c "from pathlib import Path; ui=Path('app/ui.py').read_text(encoding='utf-8'); runner=Path('app/macro_runner.py').read_text(encoding='utf-8'); print('Controller' not in ui and '.press(' not in ui and '.release(' not in ui and 'Controller' in runner)"
 ```
 
 Generar ejecutable Windows con PyInstaller:
@@ -427,7 +446,7 @@ El resultado esperado es `True`.
 
 La Fase 13 agrega una suite básica con `unittest` de la librería estándar para proteger el comportamiento ya implementado entre Fase 1 y Fase 12. El propósito es detectar regresiones en mapeo de teclas, validación de macros, previsualización, runner `test_log`, almacenamiento JSON y reglas estáticas de seguridad.
 
-Estas pruebas no abren la UI gráfica, no ejecutan `main.py`, no dependen de `$DISPLAY` y no presionan teclas reales. Los modos `real` y `test_keys` siguen bloqueados: las pruebas verifican que `MacroRunner` los rechace con `ValueError` y que `app/ui.py` y `app/macro_runner.py` no contengan llamadas directas a `Controller(`, `.press(` ni `.release(`.
+Estas pruebas no abren la UI gráfica, no ejecutan `main.py`, no dependen de `$DISPLAY` y no presionan teclas reales. Fase 22 prueba `real` con un controlador falso inyectado; `test_keys` sigue rechazado. Las pruebas estáticas verifican que `Controller`, `.press()` y `.release()` solo aparezcan en `app/macro_runner.py` y nunca en `app/ui.py`.
 
 ### Ejecutar pruebas en PowerShell
 
@@ -442,7 +461,7 @@ python -m unittest discover -s tests
 ```
 
 ```powershell
-python -c "from pathlib import Path; text=Path('app/ui.py').read_text(encoding='utf-8') + Path('app/macro_runner.py').read_text(encoding='utf-8'); forbidden=['Controller(', '.press(', '.release(']; print(all(item not in text for item in forbidden))"
+python -c "from pathlib import Path; ui=Path('app/ui.py').read_text(encoding='utf-8'); runner=Path('app/macro_runner.py').read_text(encoding='utf-8'); print('Controller' not in ui and '.press(' not in ui and '.release(' not in ui and 'Controller' in runner)"
 ```
 
 El último comando debe imprimir `True`. La revisión de la UI gráfica se mantiene manual: ejecutar `python main.py`, comprobar visualmente el constructor, previsualización, guardado/carga e inicio/detención `test_log`, y cerrar la ventana sin habilitar ejecución real.
@@ -479,10 +498,10 @@ python -m unittest discover -s tests
 ```
 
 ```powershell
-python -c "from pathlib import Path; text=Path('app/ui.py').read_text(encoding='utf-8') + Path('app/macro_runner.py').read_text(encoding='utf-8'); forbidden=['Controller(', '.press(', '.release(']; print(all(item not in text for item in forbidden))"
+python -c "from pathlib import Path; ui=Path('app/ui.py').read_text(encoding='utf-8'); runner=Path('app/macro_runner.py').read_text(encoding='utf-8'); print('Controller' not in ui and '.press(' not in ui and '.release(' not in ui and 'Controller' in runner)"
 ```
 
-El último comando debe imprimir `True`. Si cualquiera de estos comandos falla en local o en GitHub Actions, la rama debe corregirse antes de avanzar a fases posteriores.
+El último comando debe imprimir `True`: Fase 22 permite el controlador real solo en `app/macro_runner.py`, no en la UI. Si cualquiera de estos comandos falla en local o en GitHub Actions, la rama debe corregirse antes de avanzar a fases posteriores.
 
 ## Fase 15: release candidate seguro y documentación de uso
 
@@ -498,8 +517,8 @@ Objetivos de Fase 15:
 
 Límites que Fase 15 conserva:
 
-- La aplicación sigue limitada a `execution_mode = "test_log"`.
-- `execution_mode = "real"` sigue bloqueado.
+- En esta fase histórica, la aplicación seguía limitada a `execution_mode = "test_log"`; Fase 22 agrega `real` controlado.
+- En esta fase histórica, `execution_mode = "real"` seguía bloqueado; Fase 22 lo habilita solo con confirmación manual.
 - `execution_mode = "test_keys"` sigue bloqueado.
 - No se implementa ejecución real de teclas.
 - No se implementa grabación, mouse, clicks ni movimientos.
@@ -538,8 +557,8 @@ Si el build termina correctamente, verifica que exista `dist\Sistema de Macros d
 
 Límites que Fase 16 conserva:
 
-- La aplicación sigue limitada a `execution_mode = "test_log"`.
-- `execution_mode = "real"` sigue bloqueado.
+- En esta fase histórica, la aplicación seguía limitada a `execution_mode = "test_log"`; Fase 22 agrega `real` controlado.
+- En esta fase histórica, `execution_mode = "real"` seguía bloqueado; Fase 22 lo habilita solo con confirmación manual.
 - `execution_mode = "test_keys"` sigue bloqueado.
 - No se implementa ejecución real de teclas.
 - No se implementa grabación, mouse, clicks ni movimientos.
@@ -562,8 +581,8 @@ El build de release candidate sigue siendo manual mediante `workflow_dispatch`. 
 
 Límites que Fase 17 conserva:
 
-- La aplicación sigue limitada a `execution_mode = "test_log"`.
-- `execution_mode = "real"` sigue bloqueado.
+- En esta fase histórica, la aplicación seguía limitada a `execution_mode = "test_log"`; Fase 22 agrega `real` controlado.
+- En esta fase histórica, `execution_mode = "real"` seguía bloqueado; Fase 22 lo habilita solo con confirmación manual.
 - `execution_mode = "test_keys"` sigue bloqueado.
 - No se implementa ejecución real de teclas.
 - No se implementa grabación, mouse, clicks ni movimientos.
@@ -881,7 +900,7 @@ Características principales:
 
 Límites de seguridad de Fase 9:
 
-- No hay ejecución real de teclas.
+- En esta fase histórica todavía no había ejecución real de teclas; Fase 22 la habilita de forma controlada.
 - No se puede seleccionar `execution_mode = "real"`.
 - No se puede seleccionar `execution_mode = "test_keys"`.
 - No se implementa guardado visual de macros.
@@ -945,7 +964,7 @@ Límites de seguridad de Fase 10:
 
 - Toda macro construida desde la UI usa siempre `execution_mode = "test_log"`.
 - Toda macro cargada o importada con `execution_mode = "real"` o `execution_mode = "test_keys"` se convierte en la UI a `execution_mode = "test_log"` y se registra en el log visible.
-- No hay ejecución real de teclas.
+- En esta fase histórica todavía no había ejecución real de teclas; Fase 22 la habilita de forma controlada.
 - Los modos `real` y `test_keys` siguen bloqueados.
 - No se implementa grabación, captura de teclado para construir acciones, mouse, clicks, movimientos, `recorder.py`, `player.py`, `duration.py`, `storage.py`, `validation.py` ni estructura `src/`.
 
@@ -1007,7 +1026,7 @@ Características principales:
 Límites de seguridad de Fase 11:
 
 - La ejecución sigue siendo únicamente `test_log`.
-- No hay ejecución real de teclas.
+- En esta fase histórica todavía no había ejecución real de teclas; Fase 22 la habilita de forma controlada.
 - No se puede seleccionar ni ejecutar modo `real`.
 - No se puede seleccionar ni ejecutar modo `test_keys`.
 - No se implementa grabación de macros, captura de teclado para construir acciones, mouse, clicks, movimientos, `recorder.py`, `player.py`, `duration.py`, `storage.py`, `validation.py` ni estructura `src/`.

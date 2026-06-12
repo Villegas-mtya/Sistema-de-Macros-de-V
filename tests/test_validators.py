@@ -37,6 +37,31 @@ class ValidatorsTests(unittest.TestCase):
     def test_valid_action(self) -> None:
         self.assertTrue(validate_macro_action(copy.deepcopy(VALID_ACTION)))
 
+    def test_valid_macro_with_real_execution_mode(self) -> None:
+        macro = copy.deepcopy(VALID_MACRO)
+        macro["execution_mode"] = "real"
+        self.assertTrue(validate_macro_data(macro))
+
+    def test_reject_test_keys_execution_mode(self) -> None:
+        macro = copy.deepcopy(VALID_MACRO)
+        macro["execution_mode"] = "test_keys"
+        self.assertFalse(validate_macro_data(macro))
+
+    def test_reject_unknown_execution_mode(self) -> None:
+        macro = copy.deepcopy(VALID_MACRO)
+        macro["execution_mode"] = "modo_desconocido"
+        self.assertFalse(validate_macro_data(macro))
+
+    def test_reject_empty_execution_mode(self) -> None:
+        macro = copy.deepcopy(VALID_MACRO)
+        macro["execution_mode"] = ""
+        self.assertFalse(validate_macro_data(macro))
+
+    def test_reject_none_execution_mode(self) -> None:
+        macro = copy.deepcopy(VALID_MACRO)
+        macro["execution_mode"] = None
+        self.assertFalse(validate_macro_data(macro))
+
     def test_reject_macro_without_actions(self) -> None:
         macro = copy.deepcopy(VALID_MACRO)
         macro["actions"] = []

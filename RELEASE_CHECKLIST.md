@@ -1,6 +1,6 @@
 # Checklist de release candidate segura
 
-Esta checklist valida una versión candidata de **Sistema de Macros de V** sin cambiar el comportamiento funcional de la app. La release candidate de Fase 18, sugerida como `v0.1.0-rc1`, debe conservar solo `execution_mode = "test_log"` y mantener bloqueados `real` y `test_keys`.
+Esta checklist valida una versión candidata de **Sistema de Macros de V**. Desde Fase 22 debe conservar `test_log` como modo por defecto, permitir `real` solo con selección explícita y confirmación manual, y mantener bloqueado `test_keys`.
 
 > Marca cada punto manualmente antes de etiquetar, publicar o distribuir un build.
 
@@ -157,7 +157,7 @@ Test-Path "dist\Sistema de Macros de V\Sistema de Macros de V.exe"
 - [ ] Repetir una prueba corta de ejecución `test_log`.
 - [ ] Repetir una prueba corta de **Detener ahora**.
 - [ ] Confirmar que el ejecutable descargado sigue solo en `execution_mode = "test_log"`.
-- [ ] Confirmar que `execution_mode = "real"` sigue bloqueado.
+- [ ] Confirmar que `execution_mode = "real"` requiere selección explícita y confirmación manual.
 - [ ] Confirmar que `execution_mode = "test_keys"` sigue bloqueado.
 
 ## 12. QA manual del ejecutable local
@@ -174,8 +174,8 @@ Test-Path "dist\Sistema de Macros de V\Sistema de Macros de V.exe"
 
 ## 13. Confirmación de límites de seguridad
 
-- [ ] Confirmar que no hay ejecución real de teclas.
-- [ ] Confirmar que `execution_mode = "real"` sigue bloqueado.
+- [ ] Confirmar que `test_log` no ejecuta teclas reales.
+- [ ] Confirmar que `execution_mode = "real"` requiere selección explícita y confirmación manual.
 - [ ] Confirmar que `execution_mode = "test_keys"` sigue bloqueado.
 - [ ] Confirmar que no hay grabación de macros.
 - [ ] Confirmar que no hay captura de teclado para construir acciones.
@@ -234,4 +234,4 @@ git status --short --branch
 
 ## Pendiente para Fase 19
 
-Fase 19 no está implementada en esta release candidate. Cualquier avance posterior debe tener una especificación nueva y explícita. En particular, no se debe habilitar ejecución real, `test_keys`, grabación, mouse, clicks ni movimientos sin una fase autorizada y controles de seguridad completos.
+Fase 19 no está implementada en esta release candidate. Cualquier avance posterior debe tener una especificación nueva y explícita. En particular, no se debe habilitar `test_keys`, grabación, mouse, clicks, movimientos, evasión ni ejecución no autorizada sin una fase autorizada y controles de seguridad completos.

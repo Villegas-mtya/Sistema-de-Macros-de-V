@@ -2,7 +2,7 @@
 
 Esta guía reúne problemas comunes al probar **Sistema de Macros de V** en la release candidate segura `v0.1.0-rc1`.
 
-Todas las soluciones deben mantener el alcance seguro del proyecto. No resuelvas problemas habilitando ejecución real, `test_keys`, grabación, mouse, clicks ni movimientos.
+Todas las soluciones deben mantener el alcance seguro del proyecto. La ejecución real de teclado solo debe usarse desde el modo `real` confirmado por la UI; no resuelvas problemas habilitando `test_keys`, grabación, mouse, clicks, movimientos, evasión ni ejecución no autorizada.
 
 ## 1. La app no abre desde Python
 
@@ -33,7 +33,7 @@ Solución recomendada:
    python main.py
    ```
 
-No cambies el modo de ejecución para intentar abrir la app. La app debe seguir limitada a `test_log`.
+No cambies el modo de ejecución para intentar abrir la app. Primero abre en `test_log`; usa `real` solo después de validar la macro y aceptar la confirmación visual.
 
 ## 2. Faltan dependencias
 
@@ -75,7 +75,7 @@ Solución recomendada:
 4. Revisa si Windows muestra una advertencia o bloqueo.
 5. Si el problema continúa, prueba abrir la app desde Python para comparar el comportamiento.
 
-No intentes corregir el `.exe` habilitando `real` o `test_keys`; esos modos siguen bloqueados.
+No intentes corregir el `.exe` habilitando `test_keys` ni saltando la confirmación de `real`; `real` debe seguir siendo una ejecución controlada con confirmación visual.
 
 ## 4. Windows muestra advertencia de seguridad
 
@@ -158,7 +158,7 @@ Solución recomendada:
 4. Revisa repeticiones, delay inicial y cooldown.
 5. Si importaste JSON, prueba construir una macro mínima desde la UI y compara.
 
-No cambies el modo a `real` ni a `test_keys`; la previsualización debe funcionar con `test_log`.
+Para diagnosticar, vuelve primero a `test_log`; la previsualización y el log deben funcionar sin presionar teclas. No uses `test_keys`.
 
 ## 9. La prueba solo log no inicia
 
@@ -239,7 +239,7 @@ Aunque aparezca un problema, la solución no debe introducir comportamiento fuer
 
 La release candidate segura debe mantener:
 
-- `real` bloqueado.
+- `real` disponible solo con selección explícita y confirmación manual.
 - `test_keys` bloqueado.
 - Sin ejecución real de teclas.
 - Sin grabación.
@@ -251,3 +251,16 @@ La release candidate segura debe mantener:
 - Sin ocultamiento de automatización.
 
 Si una solución requiere romper estos límites, no corresponde a Fase 20.
+
+
+## Modo real no inicia
+
+Si seleccionas **Ejecución real / `real`** y la macro no inicia:
+
+1. Confirma que aceptaste la ventana de advertencia. Si cancelas, la macro no debe ejecutarse.
+2. Revisa que `pynput` esté instalado con `python -m pip install -r requirements.txt`.
+3. Prueba primero la misma macro en `test_log`.
+4. En Windows, coloca el foco en la ventana correcta antes de aceptar la confirmación.
+5. Si necesitas detener, usa **Detener ahora** o F9.
+
+No elimines la confirmación visual ni agregues ejecución automática para corregir este problema.
