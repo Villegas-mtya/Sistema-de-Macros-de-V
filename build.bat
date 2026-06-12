@@ -1,9 +1,9 @@
 @echo off
 setlocal EnableExtensions
 
-REM Fase 12: empaquetado preliminar seguro con PyInstaller.
-REM Construye una app Windows en modo ventana y mantiene la ejecución real bloqueada
-REM desde el código de la UI/runner: solo se permite execution_mode=test_log.
+REM Build seguro con PyInstaller para Sistema de Macros de V.
+REM Fase 22 habilita ejecucion real controlada solo con seleccion explicita y confirmacion.
+REM test_log sigue como modo seguro por defecto; test_keys sigue bloqueado.
 
 pushd "%~dp0"
 
@@ -88,6 +88,7 @@ if exist "%EXE_PATH%" (
     echo [WARN] Revisa la carpeta dist para confirmar la salida generada.
 )
 
-echo [INFO] Fase 12 no habilita real ni test_keys: la app sigue solo en test_log.
+echo [INFO] Fase 22 habilita ejecucion real controlada solo con seleccion explicita y confirmacion.
+echo [INFO] test_log sigue como modo seguro por defecto; test_keys sigue bloqueado.
 popd
 endlocal
