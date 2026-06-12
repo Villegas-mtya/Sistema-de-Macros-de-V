@@ -88,6 +88,7 @@ if exist "%EXE_PATH%" (
     echo [WARN] Revisa la carpeta dist para confirmar la salida generada.
 )
 
-echo [INFO] Fase 12 no habilita real ni test_keys: la app sigue solo en test_log.
+echo [INFO] Fase 22 habilita ejecucion real controlada solo con seleccion explicita y confirmacion.
+echo [INFO] test_log sigue como modo seguro por defecto; test_keys sigue bloqueado.
 popd
 endlocal

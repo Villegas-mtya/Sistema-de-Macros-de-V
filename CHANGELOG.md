@@ -4,6 +4,11 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 
 ## Unreleased
 
+### Fase 23
+
+- Se integra soporte opcional para `assets/app_icon.ico` como icono de ventana y ejecutable.
+- Se actualiza el mensaje final de `build.bat` para reflejar Fase 22.
+
 ### Fase 22
 
 - Agregada ejecución real controlada de teclado con `execution_mode = "real"`, usando `pynput.keyboard.Controller` solo dentro del runner y solo cuando el usuario selecciona explícitamente ese modo.
